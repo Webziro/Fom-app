@@ -1,4 +1,4 @@
-import express from 'express';
+ import express from 'express';
 import { register, login, getMe, updateProfile, changePassword } from '../controllers/authController';
 import { protect } from '../middleware/auth';
 import { authLimiter } from '../middleware/rateLimiter';
