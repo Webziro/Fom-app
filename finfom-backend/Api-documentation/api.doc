@@ -1,0 +1,355 @@
+Authentication: 
+Register a new user
+
+POST /api/auth/register
+Content-Type: application/json
+
+{
+  "username": "johndoe",
+  "email": "john@example.com",
+  "password": "password123"
+}
+
+//@Response 201:
+{
+  "success": true,
+  "data": {
+    "id": "64f8a7b2c9d4e5f6a7b8c9d0",
+    "username": "johndoe",
+    "email": "john@example.com",
+    "role": "user",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+}
+
+// Login an existing user
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "email": "john@example.com",
+  "password": "password123"
+}
+
+Response 200:
+{
+  "success": true,
+  "data": {
+    "id": "64f8a7b2c9d4e5f6a7b8c9d0",
+    "username": "johndoe",
+    "email": "john@example.com",
+    "role": "user",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+}
+
+// Get current user profile
+GET /api/auth/me
+Authorization: Bearer <token>
+
+Response 200:
+{
+  "success": true,
+  "data": {
+    "id": "64f8a7b2c9d4e5f6a7b8c9d0",
+    "username": "johndoe",
+    "email": "john@example.com",
+    "role": "user",
+    "createdAt": "2024-01-15T10:30:00.000Z",
+    "updatedAt": "2024-01-15T10:30:00.000Z"
+  }
+}
+
+// Update user profile
+PUT /api/auth/profile
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "username": "johndoe_updated",
+  "email": "john.new@example.com"
+}
+
+Response 200:
+{
+  "success": true,
+  "data": {
+    "id": "64f8a7b2c9d4e5f6a7b8c9d0",
+    "username": "johndoe_updated",
+    "email": "john.new@example.com",
+    "role": "user"
+  }
+}
+
+//Update user password
+
+PUT /api/auth/password
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "currentPassword": "password123",
+  "newPassword": "newpassword456"
+}
+
+Response 200:
+{
+  "success": true,
+  "message": "Password updated successfully"
+}
+
+
+//Update File
+
+POST /api/files/upload
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+
+Form Data:
+- file: [binary file]
+- title: "My Document"
+- description: "Important document"
+- visibility: "private" | "public" | "password"
+- password: "secret123" (required if visibility is "password")
+- groupId: "64f8a7b2c9d4e5f6a7b8c9d0" (optional)
+
+Response 201:
+{
+  "success": true,
+  "data": {
+    "id": "64f8a7b2c9d4e5f6a7b8c9d1",
+    "title": "My Document",
+    "description": "Important document",
+    "uploaderId": "64f8a7b2c9d4e5f6a7b8c9d0",
+    "groupId": null,
+    "url": "https://res.cloudinary.com/...",
+    "secureUrl": "https://res.cloudinary.com/...",
+    "visibility": "private",
+    "size": 1048576,
+    "fileType": "application/pdf",
+    "downloads": 0,
+    "createdAt": "2024-01-15T10:30:00.000Z"
+  }
+}
+
+//Get my files
+GET /api/files?page=1&limit=10&search=document&groupId=64f8a7b2c9d4e5f6a7b8c9d0
+Authorization: Bearer <token>
+
+Response 200:
+{
+  "success": true,
+  "data": [
+    {
+      "id": "64f8a7b2c9d4e5f6a7b8c9d1",
+      "title": "My Document",
+      "description": "Important document",
+      "visibility": "private",
+      "size": 1048576,
+      "fileType": "application/pdf",
+      "downloads": 5,
+      "createdAt": "2024-01-15T10:30:00.000Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 1,
+    "pages": 1
+  }
+}
+
+//Get Public Files
+GET /api/files/public?page=1&limit=10&search=document
+
+Response 200:
+{
+  "success": true,
+  "data": [...],
+  "pagination": {...}
+}
+
+//Get File by ID
+
+GET /api/files/:id
+Content-Type: application/json
+
+Body (only for password-protected files):
+{
+  "password": "secret123"
+}
+
+Response 200:
+{
+  "success": true,
+  "data": {
+    "id": "64f8a7b2c9d4e5f6a7b8c9d1",
+    "title": "My Document",
+    "uploaderId": {
+      "id": "64f8a7b2c9d4e5f6a7b8c9d0",
+      "username": "johndoe",
+      "email": "john@example.com"
+    },
+    "url": "https://res.cloudinary.com/...",
+    "visibility": "public",
+    "size": 1048576,
+    "fileType": "application/pdf"
+  }
+}
+
+
+//Download File
+
+POST /api/files/:id/download
+Content-Type: application/json
+
+Body (only for password-protected files):
+{
+  "password": "secret123"
+}
+
+Response 200:
+{
+  "success": true,
+  "data": {
+    "downloadUrl": "https://res.cloudinary.com/...",
+    "fileName": "My Document"
+  }
+}
+
+//Update File 
+
+PUT /api/files/:id
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "title": "Updated Document Title",
+  "description": "Updated description",
+  "visibility": "public",
+  "groupId": "64f8a7b2c9d4e5f6a7b8c9d0"
+}
+
+Response 200:
+{
+  "success": true,
+  "data": {
+    "id": "64f8a7b2c9d4e5f6a7b8c9d1",
+    "title": "Updated Document Title",
+    ...
+  }
+}
+
+
+//Delete File
+DELETE /api/files/:id
+Authorization: Bearer <token>
+
+Response 200:
+{
+  "success": true,
+  "message": "File deleted successfully"
+}
+
+//Create Group
+
+POST /api/groups
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "title": "Work Documents",
+  "description": "All work-related files"
+}
+
+Response 201:
+{
+  "success": true,
+  "data": {
+    "id": "64f8a7b2c9d4e5f6a7b8c9d0",
+    "title": "Work Documents",
+    "description": "All work-related files",
+    "ownerId": "64f8a7b2c9d4e5f6a7b8c9d0",
+    "createdAt": "2024-01-15T10:30:00.000Z"
+  }
+}
+
+//Get my Groups
+
+GET /api/groups
+Authorization: Bearer <token>
+
+Response 200:
+{
+  "success": true,
+  "data": [
+    {
+      "id": "64f8a7b2c9d4e5f6a7b8c9d0",
+      "title": "Work Documents",
+      "description": "All work-related files",
+      "fileCount": 5,
+      "createdAt": "2024-01-15T10:30:00.000Z"
+    }
+  ]
+}
+
+//Get Single Group
+
+GET /api/groups/:id
+Authorization: Bearer <token>
+
+Response 200:
+{
+  "success": true,
+  "data": {
+    "id": "64f8a7b2c9d4e5f6a7b8c9d0",
+    "title": "Work Documents",
+    "description": "All work-related files",
+    "ownerId": "64f8a7b2c9d4e5f6a7b8c9d0",
+    "createdAt": "2024-01-15T10:30:00.000Z"
+  }
+}
+
+//Get Group Files
+
+GET /api/groups/:id/files?page=1&limit=10
+Authorization: Bearer <token>
+
+Response 200:
+{
+  "success": true,
+  "data": [...],
+  "pagination": {...}
+}
+
+//Update Group
+
+PUT /api/groups/:id
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "title": "Updated Group Title",
+  "description": "Updated description"
+}
+
+Response 200:
+{
+  "success": true,
+  "data": {
+    "id": "64f8a7b2c9d4e5f6a7b8c9d0",
+    "title": "Updated Group Title",
+    ...
+  }
+}
+
+//Delete Group
+
+DELETE /api/groups/:id
+Authorization: Bearer <token>
+
+Response 200:
+{
+  "success": true,
+  "message": "Group deleted successfully"
+}docker-compose up -d 
