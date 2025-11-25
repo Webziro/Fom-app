@@ -106,7 +106,7 @@ const FilesPage = () => {
             {files.map((file) => (
               <div key={file._id} className="card hover:shadow-lg transition-shadow">
                 <div className="flex items-start justify-between mb-3">
-                  <FileText className="w-8 h-8 text-primary-600" />
+                  <FileText className="w-8 h-8 hover:bg-[#1d4ed8]" />
                   <div className="relative group">
                     <button className="p-1 hover:bg-gray-100 rounded">
                       <MoreVertical className="w-5 h-5 text-gray-400" />

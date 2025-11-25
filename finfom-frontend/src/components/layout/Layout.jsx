@@ -35,7 +35,7 @@ const Layout = ({ children }) => {
                 {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
               <Link to="/dashboard" className="flex items-center gap-2">
-                <FileText className="w-8 h-8 text-primary-600" />
+                <FileText className="w-8 h-8 hover:bg-[#1d4ed8]" />
                 <span className="text-2xl font-bold text-gray-900">Finfom</span>
               </Link>
             </div>

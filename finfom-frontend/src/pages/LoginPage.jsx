@@ -36,7 +36,7 @@ const LoginPage = () => {
       <div className="card max-w-md w-full">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <FileText className="w-12 h-12 text-primary-600" />
+            <FileText className="w-12 h-12 hover:bg-[#1d4ed8]" />
           </div>
           <h2 className="text-3xl font-bold text-gray-900">Welcome Back</h2>
           <p className="text-gray-600 mt-2">Sign in to your account</p>
@@ -70,7 +70,7 @@ const LoginPage = () => {
 
         <p className="text-center text-gray-600 mt-6">
           Don't have an account?{' '}
-          <Link to="/register" className="text-primary-600 hover:text-primary-700 font-medium">
+          <Link to="/register" className="hover:bg-[#1d4ed8] hover:text-primary-700 font-medium">
             Sign up
           </Link>
         </p>

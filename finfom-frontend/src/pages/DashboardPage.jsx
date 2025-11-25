@@ -75,7 +75,7 @@ const DashboardPage = () => {
         <div className="card">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Recent Files</h2>
-            <Link to="/files" className="text-primary-600 hover:text-primary-700 text-sm">
+            <Link to="/files" className="hover:bg-[#1d4ed8] hover:text-primary-700 text-sm">
               View All →
             </Link>
           </div>
@@ -116,7 +116,7 @@ const DashboardPage = () => {
         <div className="card">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Your Groups</h2>
-            <Link to="/groups" className="text-primary-600 hover:text-primary-700 text-sm">
+            <Link to="/groups" className="hover:bg-[#1d4ed8] hover:text-primary-700 text-sm">
               View All →
             </Link>
           </div>
@@ -129,7 +129,7 @@ const DashboardPage = () => {
               groups.slice(0, 3).map((group) => (
                 <div key={group._id} className="p-4 border border-gray-200 rounded-lg hover:border-primary-300 transition-colors">
                   <div className="flex items-center gap-2 mb-2">
-                    <FolderOpen className="w-5 h-5 text-primary-600" />
+                    <FolderOpen className="w-5 h-5 hover:bg-[#1d4ed8]" />
                     <h3 className="font-medium">{group.title}</h3>
                   </div>
                   <p className="text-sm text-gray-600">{group.fileCount || 0} files</p>

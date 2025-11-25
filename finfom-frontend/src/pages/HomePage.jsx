@@ -12,7 +12,7 @@ const HomePage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-2">
-              <FileText className="w-8 h-8 text-primary-600" />
+              <FileText className="w-8 h-8 hover:bg-[#1d4ed8]" />
               <span className="text-2xl font-bold text-gray-900">Finfom</span>
             </div>
             <div className="flex gap-4">
@@ -40,7 +40,7 @@ const HomePage = () => {
         <div className="text-center">
           <h1 className="text-5xl font-bold text-gray-900 mb-6">
             Organize Your Files,
-            <span className="text-primary-600"> Effortlessly</span>
+            <span className="hover:bg-[#1d4ed8]"> Effortlessly</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
             Upload, organize, and share your PDF files and documents securely. 
@@ -60,7 +60,7 @@ const HomePage = () => {
         <div className="grid md:grid-cols-3 gap-8 mt-20">
           <div className="card text-center">
             <div className="bg-primary-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Shield className="w-8 h-8 text-primary-600" />
+              <Shield className="w-8 h-8 hover:bg-[#1d4ed8]" />
             </div>
             <h3 className="text-xl font-semibold mb-2">Secure Storage</h3>
             <p className="text-gray-600">
@@ -70,7 +70,7 @@ const HomePage = () => {
 
           <div className="card text-center">
             <div className="bg-primary-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Zap className="w-8 h-8 text-primary-600" />
+              <Zap className="w-8 h-8 hover:bg-[#1d4ed8]" />
             </div>
             <h3 className="text-xl font-semibold mb-2">Fast Access</h3>
             <p className="text-gray-600">
@@ -80,7 +80,7 @@ const HomePage = () => {
 
           <div className="card text-center">
             <div className="bg-primary-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Users className="w-8 h-8 text-primary-600" />
+              <Users className="w-8 h-8 hover:bg-[#1d4ed8]" />
             </div>
             <h3 className="text-xl font-semibold mb-2">Easy Sharing</h3>
             <p className="text-gray-600">
@@ -92,5 +92,4 @@ const HomePage = () => {
     </div>
   );
 };
-
 export default HomePage;

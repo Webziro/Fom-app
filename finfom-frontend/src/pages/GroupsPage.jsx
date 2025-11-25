@@ -81,7 +81,7 @@ const GroupsPage = () => {
               <div key={group._id} className="card hover:shadow-lg transition-shadow">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <FolderOpen className="w-8 h-8 text-primary-600" />
+                    <FolderOpen className="w-8 h-8 hover:bg-[#1d4ed8]" />
                     <h3 className="font-semibold text-gray-900">{group.title}</h3>
                   </div>
                   <button

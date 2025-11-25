@@ -73,7 +73,7 @@ const ProfilePage = () => {
               onClick={() => setActiveTab('profile')}
               className={`pb-4 px-1 border-b-2 font-medium transition-colors ${
                 activeTab === 'profile'
-                  ? 'border-primary-600 text-primary-600'
+                  ? 'border-primary-600 hover:bg-[#1d4ed8]'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -83,7 +83,7 @@ const ProfilePage = () => {
               onClick={() => setActiveTab('password')}
               className={`pb-4 px-1 border-b-2 font-medium transition-colors ${
                 activeTab === 'password'
-                  ? 'border-primary-600 text-primary-600'
+                  ? 'border-primary-600 hover:bg-[#1d4ed8]'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -97,7 +97,7 @@ const ProfilePage = () => {
           <div className="card">
             <div className="flex items-center gap-4 mb-6">
               <div className="bg-primary-100 w-16 h-16 rounded-full flex items-center justify-center">
-                <User className="w-8 h-8 text-primary-600" />
+                <User className="w-8 h-8 hover:bg-[#1d4ed8]" />
               </div>
               <div>
                 <h2 className="text-xl font-semibold">{user?.username}</h2>

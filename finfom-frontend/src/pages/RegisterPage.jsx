@@ -47,7 +47,7 @@ const RegisterPage = () => {
       <div className="card max-w-md w-full">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <FileText className="w-12 h-12 text-primary-600" />
+            <FileText className="w-12 h-12 hover:bg-[#1d4ed8]" />
           </div>
           <h2 className="text-3xl font-bold text-gray-900">Create Account</h2>
           <p className="text-gray-600 mt-2">Sign up to get started</p>
@@ -101,7 +101,7 @@ const RegisterPage = () => {
 
         <p className="text-center text-gray-600 mt-6">
           Already have an account?{' '}
-          <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">
+          <Link to="/login" className="hover:bg-[#1d4ed8] hover:text-primary-700 font-medium">
             Sign in
           </Link>
         </p>
