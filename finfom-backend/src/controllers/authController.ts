@@ -20,6 +20,27 @@ export const register = async (req: Request, res: Response) => {
       });
     }
 
+    //Username lenght must be between 3 and 30 characters
+    if (username.length < 3 || username.length > 30) {
+      return res.status(400).json({ 
+        message: 'Username must be between 3 and 30 characters' 
+      });
+    }
+    //Email must be valid format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ 
+        message: 'Invalid email format' 
+      });
+    }
+    //Password must be at least 8 characters, contain at least one uppercase letter, one lowercase letter, one number and one special character
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({ 
+        message: 'Password must be at least 8 characters, contain at least one uppercase letter, one lowercase letter, one number and one special character' 
+      });
+    }
+
     const user = await User.create({ username, email, password });
     const token = generateToken(user._id.toString());
 
@@ -98,6 +119,20 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    //If username or email is being updated, check for uniqueness
+    if (username && username !== user.username) {
+      const usernameExists = await User.findOne({ username });
+      if (usernameExists) {
+        return res.status(400).json({ message: 'Username already taken' });
+      }
+    }
+    if (email && email !== user.email) {
+      const emailExists = await User.findOne({ email });;
+      if (emailExists) {
+        return res.status(400).json({ message: 'Email already taken' });
+      }
+    }
+
     if (username) user.username = username;
     if (email) user.email = email;
     await user.save();
@@ -122,10 +157,42 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ message: 'Current password is incorrect' });
     }
 
+    //If the inputed password to be changed is same as current password
+    if (currentPassword === newPassword) {
+      return res.status(400).json({ message: 'New password must be different from current password' });
+    }
+    //Password must be at least 8 characters, contain at least one uppercase letter, one lowercase letter, one number and one special character
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({ message: 'Password does not meet complexity requirements' });
+    }
+
     user.password = newPassword;
     await user.save();
 
     res.json({ success: true, message: 'Password updated successfully' });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+//impliment forgot password here now
+export const forgotPassword = async (req: Request, res: Response) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    } 
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user){
+      return res.status(404).json({ message: 'User with this email does not exist' });
+    }
+    //Generate a password reset token and send email logic goes here
+
+    res.json({ success: true, message: 'Password reset link sent to email if it exists in our system' });
   } catch (error: any) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
