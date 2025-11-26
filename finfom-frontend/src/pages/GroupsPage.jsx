@@ -131,7 +131,7 @@ const GroupsPage = () => {
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Optional description..."
+                  placeholder="Description..."
                   className="input-field"
                   rows="3"
                 />

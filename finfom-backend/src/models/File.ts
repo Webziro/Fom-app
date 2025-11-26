@@ -28,7 +28,8 @@ const FileSchema = new Schema<IFile>({
   },
   description: {
     type: String,
-    maxlength: 500
+    maxlength: 500,
+    required: [true, 'File description is required']
   },
   uploaderId: {
     type: Schema.Types.ObjectId,

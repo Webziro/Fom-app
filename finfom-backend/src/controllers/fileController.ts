@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import File from '../models/File';
 import cloudinary from '../config/cloudinary';
-import { AuthRequest } from '../types';
+import { AuthRequest} from '../types';
 import { Readable } from 'stream';
 import * as crypto from 'crypto';
 
@@ -10,8 +10,19 @@ const calculateFileHash = (buffer: Buffer): string => {
   return crypto.createHash('md5').update(buffer).digest('hex');
 };
 
+
 export const uploadFile = async (req: AuthRequest, res: Response) => {
   try {
+
+    console.log('req.file exists?', !!req.file); 
+    console.log('req.user exists?', !!req.user);
+
+    //File description is required
+    if (!req.body.description || req.body.description.trim() === '') {
+      return res.status(400).json({ success: false, message: 'File description is required 😞' });
+    }
+
+
     // 1. Basic checks
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No file uploaded' });

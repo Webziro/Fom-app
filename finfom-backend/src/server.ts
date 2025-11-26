@@ -1,8 +1,8 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
-import dotenv from 'dotenv';
 import connectDB from './config/database';
 import authRoutes from './routes/auth';
 import fileRoutes from './routes/files';
@@ -13,8 +13,7 @@ import { apiLimiter } from './middleware/rateLimiter';
 import { sanitizeData, preventXSS, preventHPP } from './middleware/security';
 import logger from './middleware/logger';
 
-dotenv.config();
-
+// Initialize Express app
 const app = express();
 
 // Connect to database
@@ -45,6 +44,7 @@ app.use(httpLogger);
 
 // Rate limiting
 app.use('/api', apiLimiter);
+
 
 // Routes
 app.use('/api/auth', authRoutes);

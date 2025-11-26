@@ -6,7 +6,7 @@ export interface AuthRequest extends Request {
   user?: IUser;
 }
 
-export interface FileUploadRequest extends AuthRequest {
+export interface  AuthRequest extends Request {
   file: Express.Multer.File; 
   body: {
     title?: string;

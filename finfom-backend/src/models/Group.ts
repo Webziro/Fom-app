@@ -17,7 +17,8 @@ const GroupSchema = new Schema<IGroup>({
   },
   description: {
     type: String,
-    maxlength: 500
+    maxlength: 500,
+    required: [true, 'Group description is required']
   },
   ownerId: {
     type: Schema.Types.ObjectId,

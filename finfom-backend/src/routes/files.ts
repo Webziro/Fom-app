@@ -27,14 +27,14 @@ router.get('/public', cache(300), getPublicFiles);
 router.get('/:id', getFile);
 router.post('/:id/download', downloadLimiter, downloadFile);
 
-// Protected routes — FINAL PERFECT VERSION
+
 router.post(
   '/upload',
   protect,
   uploadLimiter,
   upload.single('file'),
   uploadFile,
-  clearFilesCache          // ← NOW WORKS!
+  clearFilesCache 
 );
 
 router.get('/', protect, getMyFiles);
