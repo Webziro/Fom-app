@@ -85,7 +85,6 @@ exports.uploadFile = async (req, res, next) => {
             fileType: mimetype,
             fileHash: fileHash,
             
-            // Uploader and Cloudinary details
             uploaderId: req.user._id,
             cloudinaryId: uploadResult.public_id,
             url: uploadResult.url,
