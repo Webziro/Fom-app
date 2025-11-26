@@ -3,6 +3,8 @@ import File from '../models/File';
 import cloudinary from '../config/cloudinary';
 import { AuthRequest, FileUploadRequest } from '../types';
 import { Readable } from 'stream';
+import * as crypto from 'crypto';
+
 
 export const uploadFile = async (req: FileUploadRequest, res: Response) => {
   try {
@@ -10,7 +12,105 @@ export const uploadFile = async (req: FileUploadRequest, res: Response) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    const { title, description, groupId, visibility, password } = req.body;
+    /**Chech if file already exist in system for other users by title, 
+    size, filetype, uploaderId, groupId, visibility, password, */ 
+
+/**
+ * Utility function to calculate the MD5 hash of a file's buffer.
+ * This hash is used to check for identical content across the system.
+ * @param {Buffer} buffer - The file content buffer.
+ * @returns {string} The MD5 hash string.
+ */
+function calculateFileHash(buffer) {
+    return crypto.createHash('md5').update(buffer).digest('hex');
+}
+
+/**
+ * Handles the file upload process, including duplicate checking and Cloudinary integration.
+ * Assumes:
+ * 1. Express and Multer are used, resulting in req.file (containing buffer, size, mimetype).
+ * 2. req.user is populated by authentication middleware (containing _id).
+ */
+exports.uploadFile = async (req, res, next) => {
+    if (!req.file || !req.user) {
+        return res.status(400).json({ success: false, message: 'No file or user authentication provided.' });
+    }
+
+    try {
+        const { buffer, size, mimetype, originalname } = req.file;
+        const fileHash = calculateFileHash(buffer);
+
+        const existingFile = await File.findOne({
+            fileHash: fileHash,
+            size: size,
+            fileType: mimetype,
+        });
+
+        if (existingFile) {
+            console.log(`[DUPLICATE] Duplicate file detected for hash: ${fileHash}`);
+            return res.status(200).json({
+                success: true,
+                data: existingFile,
+                message: `File content already exists in the system (uploaded by user ${existingFile.uploaderId}). Using the existing file link.`,
+                link: existingFile.secureUrl,
+            });
+        }
+        const { 
+            title = originalname, 
+            description, 
+            groupId, 
+            visibility = 'private', 
+            password 
+        } = req.body;
+        
+        // Final title check: ensure title is not empty
+        const finalTitle = title || originalname;
+        
+        const b64 = buffer.toString('base64');
+        let dataURI = `data:${mimetype};base64,${b64}`;
+
+        const uploadResult = await cloudinary.uploader.upload(dataURI, {
+            folder: 'finfom-uploads', 
+        });
+
+        const newFile = await File.create({
+            title: finalTitle,
+            description: description,
+            groupId: groupId || null,
+            visibility: visibility,
+            password: visibility === 'password' ? password : null,
+            
+            // Uniqueness and content fields
+            size: size,
+            fileType: mimetype,
+            fileHash: fileHash,
+            
+            // Uploader and Cloudinary details
+            uploaderId: req.user._id,
+            cloudinaryId: uploadResult.public_id,
+            url: uploadResult.url,
+            secureUrl: uploadResult.secure_url,
+        });
+
+        // 7. Success Response
+        return res.status(201).json({
+            success: true,
+            data: newFile,
+            message: 'File uploaded and saved successfully!',
+        });
+
+    } catch (error) {
+        console.error('File Upload Error:', error);
+        // Handle Cloudinary upload failure or database save failure
+        return res.status(500).json({
+            success: false,
+            message: 'An error occurred during file processing or upload.',
+            error: error.message
+        });
+    }
+};
+    
+
 
     const uploadStream = cloudinary.uploader.upload_stream(
       { folder: 'finfom-files', resource_type: 'auto' },
