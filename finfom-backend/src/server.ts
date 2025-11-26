@@ -20,11 +20,14 @@ const app = express();
 // Connect to database
 connectDB();
 
-// Security middleware
+// Security middleware and CORS configuration for the frontend
 app.use(helmet());
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || '*',
-  credentials: true
+  origin: 'http://localhost:5173',   // ← HARD CODED
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 // Body parsing and compression
@@ -64,13 +67,6 @@ app.use('*', (req, res) => {
     path: req.originalUrl 
   });
 });
-
-
-// CORS configuration for specific origins
-app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'],
-  credentials: true
-}));
 
 // Error handling
 app.use(errorHandler);
