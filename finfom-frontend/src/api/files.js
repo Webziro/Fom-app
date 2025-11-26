@@ -1,13 +1,13 @@
 import axios from './axios';
 
 export const filesAPI = {
-  uploadFile: (formData) => axios.post('/files/upload', formData, {
+  uploadFile: (formData) => axios.post('api/files/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),
-  getMyFiles: (params) => axios.get('/files', { params }),
-  getPublicFiles: (params) => axios.get('/files/public', { params }),
-  getFile: (id, password) => axios.get(`/files/${id}`, { data: { password } }),
-  downloadFile: (id, password) => axios.post(`/files/${id}/download`, { password }),
-  updateFile: (id, data) => axios.put(`/files/${id}`, data),
-  deleteFile: (id) => axios.delete(`/files/${id}`),
+  getMyFiles: (params) => axios.get('api/files', { params }),
+  getPublicFiles: (params) => axios.get('api/files/public', { params }),
+  getFile: (id, password) => axios.get(`api/files/${id}`, { data: { password } }),
+  downloadFile: (id, password) => axios.post(`api/files/${id}/download`, { password }),
+  updateFile: (id, data) => axios.put(`api/files/${id}`, data),
+  deleteFile: (id) => axios.delete(`api/files/${id}`),
 };
