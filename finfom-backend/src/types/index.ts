@@ -15,4 +15,9 @@ export interface  AuthRequest extends Request {
     visibility?: 'public' | 'private' | 'password';
     password?: string;
   };
+  groupName: {
+    type: String,
+    required: true,
+    trim: true,
+  },
 }

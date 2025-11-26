@@ -11,6 +11,8 @@ export const createGroup = async (req: AuthRequest, res: Response) => {
       description,
       ownerId: req.user!._id
     });
+    
+    //Check if group has been created on the system by another user with same name, or similar description, 
     res.status(201).json({ success: true, data: group });
   } catch (error: any) {
     res.status(500).json({ message: 'Server error', error: error.message });
