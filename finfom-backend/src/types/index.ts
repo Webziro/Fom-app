@@ -1,3 +1,5 @@
+//File upload request types
+
 import { Request } from 'express';
 import { IUser } from '../models/User';
 
