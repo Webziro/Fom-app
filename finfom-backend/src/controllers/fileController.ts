@@ -92,7 +92,6 @@ exports.uploadFile = async (req, res, next) => {
             secureUrl: uploadResult.secure_url,
         });
 
-        // 7. Success Response
         return res.status(201).json({
             success: true,
             data: newFile,
@@ -101,7 +100,7 @@ exports.uploadFile = async (req, res, next) => {
 
     } catch (error) {
         console.error('File Upload Error:', error);
-        // Handle Cloudinary upload failure or database save failure
+
         return res.status(500).json({
             success: false,
             message: 'An error occurred during file processing or upload.',
@@ -109,8 +108,6 @@ exports.uploadFile = async (req, res, next) => {
         });
     }
 };
-    
-
 
     const uploadStream = cloudinary.uploader.upload_stream(
       { folder: 'finfom-files', resource_type: 'auto' },
