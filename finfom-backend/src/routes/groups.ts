@@ -1,4 +1,4 @@
-// src/routes/groups.ts — FINAL 100% WORKING VERSION
+// src/routes/groups.ts
 import express from 'express';
 import {
   createGroup,
@@ -28,13 +28,13 @@ const clearGroupCache = async (_req: any, _res: any, next: any) => {
   next();
 };
 
-// ROUTES — CLEAN & WORKING
+// ROUTES 
 router.post('/', createGroup, clearGroupCache);
 router.post('/create-or-get', createOrGetGroup);
-router.get('/', getAllGroups);
-router.get('/', cache(300), getMyGroups);
-router.get('/:id', cache(300), getGroup);
-router.get('/:id/files', cache(300), getGroupFiles);
+router.get('/', getAllGroups);                   
+router.get('/my-groups', getMyGroups);          
+router.get('/:id', getGroup);
+router.get('/:id/files', getGroupFiles);
 router.put('/:id', updateGroup, clearGroupCache);
 router.delete('/:id', deleteGroup, clearGroupCache);
 
