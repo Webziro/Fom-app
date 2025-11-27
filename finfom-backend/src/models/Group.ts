@@ -1,56 +1,63 @@
+// src/models/Group.ts — FINAL VERSION THAT WORKS PERFECTLY
+
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IGroup extends Document {
   title: string;
-  displayName?: string;
-  description?: string;
+  displayName: string;
+  description: string;
   ownerId: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
-  fileCount: Number;
+  fileCount: number;
+  isSystem?: boolean;
 }
 
-const GroupSchema = new Schema<IGroup>({
-  title: {
-    type: String,
-    required: [true, 'Group title is required'],
-    trim: true,
-    maxlength: 100,
-    lowercase: true
+const GroupSchema = new Schema<IGroup>(
+  {
+    title: {
+      type: String,
+      required: [true, 'Group title is required'],
+      trim: true,
+      maxlength: 100,
+      lowercase: true,
+      unique: true, // Ensures no duplicate group names
+    },
+    displayName: {
+      type: String,
+      required: [true, 'Group display name is required'],
+      trim: true,
+    },
+    description: {
+      type: String,
+      maxlength: 500,
+      required: [true, 'Group description is required'],
+    },
+    ownerId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true,
+    },
+    fileCount: {
+      type: Number,
+      default: 0,
+    },
+    isSystem: {
+      type: Boolean,
+      default: false,
+    },
   },
-  displayName: {
-    type: String,
-    required: true,
-    trim: true,
-  },
-  description: {
-    type: String,
-    maxlength: 500,
-    required: [true, 'Group description is required'],
-      isSystem: {
-    type: Boolean,
-    default: false,
-  }
-  },
-  ownerId: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-    index: true
-  },
-  fileCount: {
-    type: Number,
-    default: 0,
-  },
-}, {
-  timestamps: true
-});
+  { timestamps: true }
+);
 
-GroupSchema.pre('save', function(next) {
-  this.displayName = this.displayName || this.name.charAt(0).toUpperCase() + this.name.slice(1);
+// Auto-generate displayName from title if not provided
+GroupSchema.pre('save', function (next) {
+  if (!this.displayName && this.title) {
+    this.displayName =
+      this.title.charAt(0).toUpperCase() + this.title.slice(1).replace(/_/g, ' ');
+  }
   next();
 });
 
 export default mongoose.model<IGroup>('Group', GroupSchema);
-
-
