@@ -7,7 +7,7 @@ dotenv.config();
 
 const systemGroups = [
   { title: 'tech', displayName: 'Technology', description: 'All things tech and innovation', isSystem: true },
-  { title: 'science', displayName: 'Science', description: 'Research and discoveries', isSystem: true },
+  { title: 'comedy', displayName: 'Comedy', description: 'Funny memes and jokes', isSystem: true },
   { title: 'politics', displayName: 'Politics', description: 'Political discussions and news', isSystem: true },
   { title: 'religion', displayName: 'Religion', description: 'Faith and spirituality', isSystem: true },
   { title: 'sports', displayName: 'Sports', description: 'Game highlights and scores', isSystem: true },

@@ -36,7 +36,9 @@ const GroupSchema = new Schema<IGroup>(
     ownerId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      required: function() {
+        return !this.isSystem;
+      },
       index: true,
     },
     fileCount: {
