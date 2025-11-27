@@ -2,6 +2,8 @@
 import express from 'express';
 import {
   createGroup,
+  createOrGetGroup,
+  getAllGroups,
   getMyGroups,
   getGroup,
   updateGroup,
@@ -28,6 +30,8 @@ const clearGroupCache = async (_req: any, _res: any, next: any) => {
 
 // ROUTES — CLEAN & WORKING
 router.post('/', createGroup, clearGroupCache);
+router.post('/create-or-get', createOrGetGroup);
+router.get('/', getAllGroups);
 router.get('/', cache(300), getMyGroups);
 router.get('/:id', cache(300), getGroup);
 router.get('/:id/files', cache(300), getGroupFiles);

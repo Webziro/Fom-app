@@ -3,129 +3,59 @@ import Group from '../models/Group';
 import File from '../models/File';
 import { AuthRequest } from '../types';
 
-export const createGroup = async (req: AuthRequest, res: Response) => {
+// Add this to your groupController
+
+export const createOrGetGroup = async (req: AuthRequest, res: Response) => {
   try {
-    const { title, description } = req.body;
-    const group = await Group.create({
-      title,
-      description,
-      ownerId: req.user!._id
-    });
+    const { groupName } = req.body;
     
-    //Check if group has been created on the system by another user with same name, or similar description, 
-    res.status(201).json({ success: true, data: group });
-  } catch (error: any) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
+    if (!groupName || typeof groupName !== 'string' || groupName.trim().length === 0) {
+      return res.status(400).json({ success: false, message: 'Group name is required' });
+    }
 
-export const getMyGroups = async (req: AuthRequest, res: Response) => {
-  try {
-    const groups = await Group.find({ ownerId: req.user!._id }).sort({ createdAt: -1 });
+    const normalizedGroupName = groupName.trim();
 
-    const groupsWithCounts = await Promise.all(
-      groups.map(async (group) => {
-        const fileCount = await File.countDocuments({ groupId: group._id });
-        return { ...group.toObject(), fileCount };
-      })
-    );
+    // Try to find existing group with exact name match
+    let group = await Group.findOne({ title: normalizedGroupName });
 
-    res.json({ success: true, data: groupsWithCounts });
-  } catch (error: any) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
-export const getGroup = async (req: AuthRequest, res: Response) => {
-  try {
-    const group = await Group.findById(req.params.id);
     if (!group) {
-      return res.status(404).json({ message: 'Group not found' });
+      // If no exact match exists, create a new group
+      group = await Group.create({
+        title: normalizedGroupName,
+        description: `Group for ${normalizedGroupName}`,
+        ownerId: req.user!._id
+      });
     }
 
-    if (group.ownerId.toString() !== req.user!._id.toString()) {
-      return res.status(403).json({ message: 'Not authorized' });
-    }
-
-    res.json({ success: true, data: group });
-  } catch (error: any) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
-export const updateGroup = async (req: AuthRequest, res: Response) => {
-  try {
-    const group = await Group.findById(req.params.id);
-    if (!group) {
-      return res.status(404).json({ message: 'Group not found' });
-    }
-
-    if (group.ownerId.toString() !== req.user!._id.toString()) {
-      return res.status(403).json({ message: 'Not authorized' });
-    }
-
-    const { title, description } = req.body;
-    if (title) group.title = title;
-    if (description !== undefined) group.description = description;
-    await group.save();
-
-    res.json({ success: true, data: group });
-  } catch (error: any) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
-export const deleteGroup = async (req: AuthRequest, res: Response) => {
-  try {
-    const group = await Group.findById(req.params.id);
-    if (!group) {
-      return res.status(404).json({ message: 'Group not found' });
-    }
-
-    if (group.ownerId.toString() !== req.user!._id.toString()) {
-      return res.status(403).json({ message: 'Not authorized' });
-    }
-
-    await File.updateMany({ groupId: group._id }, { $unset: { groupId: "" } });
-    await group.deleteOne();
-
-    res.json({ success: true, message: 'Group deleted successfully' });
-  } catch (error: any) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
-export const getGroupFiles = async (req: AuthRequest, res: Response) => {
-  try {
-    const group = await Group.findById(req.params.id);
-    if (!group) {
-      return res.status(404).json({ message: 'Group not found' });
-    }
-
-    if (group.ownerId.toString() !== req.user!._id.toString()) {
-      return res.status(403).json({ message: 'Not authorized' });
-    }
-
-    const { page = 1, limit = 10 } = req.query;
-
-    const files = await File.find({ groupId: req.params.id })
-      .sort({ createdAt: -1 })
-      .limit(Number(limit))
-      .skip((Number(page) - 1) * Number(limit));
-
-    const total = await File.countDocuments({ groupId: req.params.id });
-
-    res.json({
-      success: true,
-      data: files,
-      pagination: {
-        page: Number(page),
-        limit: Number(limit),
-        total,
-        pages: Math.ceil(total / Number(limit))
-      }
+    res.json({ 
+      success: true, 
+      data: group,
+      message: group ? 'Group retrieved successfully' : 'Group created successfully'
     });
+
   } catch (error: any) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    if (error.code === 11000) {
+      // If duplicate key error occurs, find and return the existing group
+      const { groupName } = req.body;
+      const existingGroup = await Group.findOne({ title: groupName.trim() });
+      if (existingGroup) {
+        return res.json({ 
+          success: true, 
+          data: existingGroup, 
+          message: 'Group already exists and has been retrieved'
+        });
+      }
+    }
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Also add this endpoint to get all existing groups for the dropdown
+export const getAllGroups = async (req: AuthRequest, res: Response) => {
+  try {
+    const groups = await Group.find({}).sort({ createdAt: -1 });
+    res.json({ success: true, data: groups });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };

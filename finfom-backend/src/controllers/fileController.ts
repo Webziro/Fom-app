@@ -1,43 +1,47 @@
 import { Response } from 'express';
 import File from '../models/File';
+import Group from '../models/Group';
 import cloudinary from '../config/cloudinary';
-import { AuthRequest} from '../types';
+import { AuthRequest } from '../types';
 import { Readable } from 'stream';
 import * as crypto from 'crypto';
 
-// Utility: Calculate MD5 hash for duplicate detection
 const calculateFileHash = (buffer: Buffer): string => {
   return crypto.createHash('md5').update(buffer).digest('hex');
 };
 
-
 export const uploadFile = async (req: AuthRequest, res: Response) => {
   try {
-
-    console.log('req.file exists?', !!req.file); 
-    console.log('req.user exists?', !!req.user);
-
-    //File description is required
-    if (!req.body.description || req.body.description.trim() === '') {
-      return res.status(400).json({ success: false, message: 'File description is required 😞' });
-    }
-
-
-    // 1. Basic checks
+    // Basic validation
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
+
     if (!req.user) {
       return res.status(401).json({ success: false, message: 'User not authenticated' });
     }
 
-    const { buffer, originalname, mimetype, size } = req.file;
     const { title, description, groupId, visibility = 'private', password } = req.body;
 
-    // 2. Generate hash for duplicate detection
-    const fileHash = calculateFileHash(buffer);
+    // Validate required fields
+    if (!groupId) {
+      return res.status(400).json({ success: false, message: 'Group selection is required' });
+    }
 
-    // 3. Check for existing identical file (same content + size + type)
+    if (!description || description.trim() === '') {
+      return res.status(400).json({ success: false, message: 'File description is required' });
+    }
+
+    // Verify the group exists
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ success: false, message: 'Selected group does not exist' });
+    }
+
+    const { buffer, originalname, mimetype, size } = req.file;
+
+    // Check for duplicate file content
+    const fileHash = calculateFileHash(buffer);
     const existingFile = await File.findOne({
       fileHash,
       size,
@@ -49,21 +53,15 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
       return res.status(200).json({
         success: true,
         data: existingFile,
-        message: `File content already exists in the system. Using existing file.`,
+        message: 'File content already exists in the system. Using existing file.',
         isDuplicate: true,
         link: existingFile.secureUrl,
       });
     }
 
-    // 4. Final title fallback
-    const finalTitle = (title?.trim() || originalname).trim();
-
-    // 5. Upload to Cloudinary using stream (best for memory & large files)
+    // Upload to Cloudinary using stream
     const uploadStream = cloudinary.uploader.upload_stream(
-      {
-        folder: 'finfom-uploads',
-        resource_type: 'auto',
-      },
+      { folder: 'finfom-uploads', resource_type: 'auto' },
       async (error, result) => {
         if (error || !result) {
           console.error('Cloudinary upload failed:', error);
@@ -75,42 +73,41 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
         }
 
         try {
+          const finalTitle = (title?.trim() || originalname).trim();
+
           const newFile = await File.create({
             title: finalTitle,
-            description: description?.trim() || null,
-            groupId: groupId || null,
+            description: description.trim(),
+            groupId,
             visibility,
             password: visibility === 'password' ? password : null,
-
-            // Deduplication fields
             size,
             fileType: mimetype,
             fileHash,
-
             uploaderId: req.user._id,
             cloudinaryId: result.public_id,
             url: result.url,
             secureUrl: result.secure_url,
           });
 
-          return res.status(201).json({
+          res.status(201).json({
             success: true,
             data: newFile,
             message: 'File uploaded and saved successfully!',
           });
         } catch (dbError: any) {
-          // Rollback: delete from Cloudinary if DB fails
+          // Rollback: delete from Cloudinary if database save fails
           await cloudinary.uploader.destroy(result.public_id).catch(() => {});
           return res.status(500).json({
             success: false,
-            message: 'Failed to save file metadata',
+            message: 'Failed to save file metadata to database',
             error: dbError.message,
           });
         }
       }
     );
 
-    // 6. Stream the buffer to Cloudinary
+    // Stream the buffer to Cloudinary
     const stream = new Readable();
     stream.push(buffer);
     stream.push(null);
@@ -128,11 +125,12 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 
 export const getMyFiles = async (req: AuthRequest, res: Response) => {
   try {
-    const { page = 1, limit = 10, search, groupId } = req.query;
+    const { page = 1, limit = 10, search } = req.query;
     const query: any = { uploaderId: req.user!._id };
 
-    if (search) query.$text = { $search: search as string };
-    if (groupId) query.groupId = groupId;
+    if (search) {
+      query.$text = { $search: search as string };
+    }
 
     const files = await File.find(query)
       .populate('groupId', 'title')
@@ -149,8 +147,8 @@ export const getMyFiles = async (req: AuthRequest, res: Response) => {
         page: Number(page),
         limit: Number(limit),
         total,
-        pages: Math.ceil(total / Number(limit))
-      }
+        pages: Math.ceil(total / Number(limit)),
+      },
     });
   } catch (error: any) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -167,6 +165,7 @@ export const getFile = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: 'File not found' });
     }
 
+    // Check visibility permissions
     if (file.visibility === 'private') {
       if (!req.user || file.uploaderId._id.toString() !== req.user._id.toString()) {
         return res.status(403).json({ message: 'Access denied' });
@@ -180,8 +179,11 @@ export const getFile = async (req: AuthRequest, res: Response) => {
       }
 
       const fileWithPassword = await File.findById(req.params.id).select('+password');
-      const isMatch = await fileWithPassword!.comparePassword(password);
-      
+      if (!fileWithPassword) {
+        return res.status(404).json({ message: 'File not found' });
+      }
+
+      const isMatch = await fileWithPassword.comparePassword(password);
       if (!isMatch) {
         return res.status(401).json({ message: 'Incorrect password' });
       }
@@ -200,19 +202,20 @@ export const downloadFile = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: 'File not found' });
     }
 
-    // Check permissions (same as getFile)
+    // Check permissions
     if (file.visibility === 'private') {
       if (!req.user || file.uploaderId.toString() !== req.user._id.toString()) {
         return res.status(403).json({ message: 'Access denied' });
       }
     }
 
+    // Increment download count
     file.downloads += 1;
     await file.save();
 
     res.json({
       success: true,
-      data: { downloadUrl: file.secureUrl, fileName: file.title }
+      data: { downloadUrl: file.secureUrl, fileName: file.title },
     });
   } catch (error: any) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -232,14 +235,23 @@ export const updateFile = async (req: AuthRequest, res: Response) => {
 
     const { title, description, groupId, visibility, password } = req.body;
 
-    if (title) file.title = title;
-    if (description !== undefined) file.description = description;
-    if (groupId !== undefined) file.groupId = groupId;
+    if (title) file.title = title.trim();
+    if (description !== undefined) file.description = description.trim();
+    if (groupId !== undefined) {
+      const group = await Group.findById(groupId);
+      if (!group) {
+        return res.status(400).json({ message: 'Invalid group' });
+      }
+      file.groupId = groupId;
+    }
     if (visibility) file.visibility = visibility;
-    if (visibility === 'password' && password) file.password = password;
+    if (visibility === 'password' && password) {
+      file.password = password;
+    }
 
     await file.save();
-    res.json({ success: true, data: file });
+    const updatedFile = await File.findById(file._id).populate('groupId', 'title');
+    res.json({ success: true, data: updatedFile });
   } catch (error: any) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -270,10 +282,13 @@ export const getPublicFiles = async (req: AuthRequest, res: Response) => {
     const { page = 1, limit = 10, search } = req.query;
     const query: any = { visibility: 'public' };
 
-    if (search) query.$text = { $search: search as string };
+    if (search) {
+      query.$text = { $search: search as string };
+    }
 
     const files = await File.find(query)
       .populate('uploaderId', 'username')
+      .populate('groupId', 'title')
       .sort({ createdAt: -1 })
       .limit(Number(limit))
       .skip((Number(page) - 1) * Number(limit));
@@ -287,8 +302,8 @@ export const getPublicFiles = async (req: AuthRequest, res: Response) => {
         page: Number(page),
         limit: Number(limit),
         total,
-        pages: Math.ceil(total / Number(limit))
-      }
+        pages: Math.ceil(total / Number(limit)),
+      },
     });
   } catch (error: any) {
     res.status(500).json({ message: 'Server error', error: error.message });

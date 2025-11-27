@@ -1,182 +1,290 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { filesAPI } from '../api/files';
-import Layout from '../components/layout/Layout';
-import FileUpload from '../components/files/FileUpload';
-import {
-  Upload,
-  Search,
-  Filter,
-  FileText,
-  Download,
-  Trash2,
-  Edit,
-  Eye,
-  MoreVertical,
-} from 'lucide-react';
+// src/components/files/FileUpload.tsx
+import { useState, useEffect } from 'react';
+import { groupsAPI } from '../../api/groups';
+import { filesAPI } from '../../api/files';
 import toast from 'react-hot-toast';
-import Button from '../components/common/Button';
+import {
+  X,
+  Upload,
+  Globe,
+  Lock,
+  Key,
+  AlertCircle,
+} from 'lucide-react';
 
-const FilesPage = () => {
-  const [showUpload, setShowUpload] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedFile, setSelectedFile] = useState(null);
-  const queryClient = useQueryClient();
+interface FileUploadProps {
+  onSuccess: () => void;
+  onClose: () => void;
+}
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['myFiles', searchTerm],
-    queryFn: () => filesAPI.getMyFiles({ search: searchTerm, limit: 50 }),
-  });
+const FileUpload = ({ onSuccess, onClose }: FileUploadProps) => {
+  const [groups, setGroups] = useState<any[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState('');
+  const [newGroupName, setNewGroupName] = useState('');
+  const [isCreatingNewGroup, setIsCreatingNewGroup] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [visibility, setVisibility] = useState<'public' | 'private' | 'password'>('public');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
-  const deleteMutation = useMutation({
-    mutationFn: filesAPI.deleteFile,
-    onSuccess: () => {
-      toast.success('File deleted successfully');
-      queryClient.invalidateQueries(['myFiles']);
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to delete file');
-    },
-  });
+  // Load all groups
+  useEffect(() => {
+    const loadGroups = async () => {
+      setLoading(true);
+      try {
+        const res = await groupsAPI.getMyGroups();
+        setGroups(res.data || []);
+      } catch (err) {
+        toast.error('Failed to load groups');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadGroups();
+  }, []);
 
-  const files = data?.data?.data || [];
-
-  const handleDownload = async (fileId) => {
+  const handleCreateGroup = async () => {
+    if (!newGroupName.trim()) return;
     try {
-      const response = await filesAPI.downloadFile(fileId);
-      window.open(response.data.data.downloadUrl, '_blank');
-      toast.success('Download started');
-    } catch (error) {
-      toast.error('Failed to download file');
+      const res = await groupsAPI.createGroup({ title: newGroupName.trim() });
+      setGroups([...groups, res.data]);
+      setSelectedGroupId(res.data._id);
+      setNewGroupName('');
+      setIsCreatingNewGroup(false);
+      toast.success('Group created!');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to create group');
     }
   };
 
-  const handleDelete = (fileId) => {
-    if (window.confirm('Are you sure you want to delete this file?')) {
-      deleteMutation.mutate(fileId);
+  const handleUpload = async () => {
+    if (!selectedFile) return toast.error('Please select a file');
+    if (!selectedGroupId) return toast.error('Please select or create a group');
+    if (!description.trim()) return toast.error('Description is required');
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    formData.append('title', title || selectedFile.name);
+    formData.append('description', description);
+    formData.append('groupId', selectedGroupId);
+    formData.append('visibility', visibility);
+    if (visibility === 'password' && password) formData.append('password', password);
+
+    try {
+      await filesAPI.uploadFile(formData);
+      toast.success('File uploaded successfully!');
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Upload failed');
+    } finally {
+      setUploading(false);
     }
   };
 
   return (
-    <Layout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h1 className="text-3xl font-bold text-gray-900">My Files</h1>
-          <Button onClick={() => setShowUpload(true)} className="flex items-center gap-2">
-            <Upload className="w-5 h-5" />
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center p-6 border-b">
+          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <Upload className="w-6 h-6" />
             Upload File
-          </Button>
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <X className="w-6 h-6 text-gray-500" />
+          </button>
         </div>
 
-        {/* Search Bar */}
-        <div className="card">
-          <div className="flex gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search files..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="input-field pl-10"
-              />
+        <div className="p-6 space-y-6">
+          {/* File Picker */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select File <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="file"
+              onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-600 file:text-white hover:file:bg-primary-700 cursor-pointer"
+            />
+            {selectedFile && (
+              <p className="mt-2 text-sm text-gray-600">
+                {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+              </p>
+            )}
+          </div>
+
+          {/* Group Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Group <span className="text-red-500">*</span>
+            </label>
+            <div className="flex gap-3">
+              <select
+                value={selectedGroupId}
+                onChange={(e) => {
+                  setSelectedGroupId(e.target.value);
+                  setIsCreatingNewGroup(false);
+                  setNewGroupName('');
+                }}
+                className="flex-1 input-field"
+                disabled={loading}
+              >
+                <option value="">{loading ? 'Loading groups...' : 'Select a group'}</option>
+                {groups.map((g) => (
+                  <option key={g._id} value={g._id}>
+                    {g.title} ({g.fileCount || 0} files)
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setIsCreatingNewGroup(!isCreatingNewGroup)}
+                className="px-4 py-2 btn-secondary whitespace-nowrap"
+              >
+                {isCreatingNewGroup ? 'Cancel' : '+ New Group'}
+              </button>
             </div>
-            <button className="btn-secondary flex items-center gap-2">
-              <Filter className="w-5 h-5" />
-              Filter
-            </button>
+
+            {isCreatingNewGroup && (
+              <div className="mt-4 flex gap-3">
+                <input
+                  type="text"
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                  placeholder="Enter group name"
+                  className="flex-1 input-field"
+                />
+                <Button onClick={handleCreateGroup} disabled={!newGroupName.trim()}>
+                  Create
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Title */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Title (optional)</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Leave blank to use file name"
+              className="input-field w-full"
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Description <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              placeholder="Describe your file..."
+              className="input-field w-full resize-none"
+            />
+          </div>
+
+          {/* Visibility */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Visibility</label>
+            <div className="grid grid-cols-3 gap-3">
+              <button
+                type="button"
+                onClick={() => setVisibility('public')}
+                className={`p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
+                  visibility === 'public'
+                    ? 'border-primary-600 bg-primary-50'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                <Globe className="w-6 h-6" />
+                <span className="font-medium">Public</span>
+                <span className="text-xs text-gray-600">Everyone can see</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setVisibility('private')}
+                className={`p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
+                  visibility === 'private'
+                    ? 'border-primary-600 bg-primary-50'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                <Lock className="w-6 h-6" />
+                <span className="font-medium">Private</span>
+                <span className="text-xs text-gray-600">Only you</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setVisibility('password')}
+                className={`p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
+                  visibility === 'password'
+                    ? 'border-primary-600 bg-primary-50'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                <Key className="w-6 h-6" />
+                <span className="font-medium">Password</span>
+                <span className="text-xs text-gray-600">Password protected</span>
+              </button>
+            </div>
+
+            {visibility === 'password' && (
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Password <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter password"
+                  className="input-field w-full"
+                />
+                <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-4 h-4" />
+                  Anyone with this password can view & download
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Submit */}
+          <div className="flex gap-3 pt-4">
+            <Button
+              onClick={handleUpload}
+              disabled={uploading || !selectedFile || !selectedGroupId || !description.trim()}
+              className="flex-1"
+            >
+              {uploading ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
+                  Uploading...
+                </>
+              ) : (
+                'Upload File'
+              )}
+            </Button>
+            <Button variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
           </div>
         </div>
-
-        {/* Files Grid */}
-        {isLoading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading files...</p>
-          </div>
-        ) : files.length === 0 ? (
-          <div className="card text-center py-12">
-            <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 mb-4">No files found</p>
-            <Button onClick={() => setShowUpload(true)}>Upload Your First File</Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {files.map((file) => (
-              <div key={file._id} className="card hover:shadow-lg transition-shadow">
-                <div className="flex items-start justify-between mb-3">
-                  <FileText className="w-8 h-8 hover:bg-[#1d4ed8]" />
-                  <div className="relative group">
-                    <button className="p-1 hover:bg-gray-100 rounded">
-                      <MoreVertical className="w-5 h-5 text-gray-400" />
-                    </button>
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border hidden group-hover:block z-10">
-                      <button
-                        onClick={() => handleDownload(file._id)}
-                        className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left"
-                      >
-                        <Download className="w-4 h-4" />
-                        Download
-                      </button>
-                      <button
-                        onClick={() => handleDelete(file._id)}
-                        className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left text-red-600"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <h3 className="font-semibold text-gray-900 mb-1 truncate">{file.title}</h3>
-                {file.description && (
-                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">{file.description}</p>
-                )}
-
-                <div className="flex items-center justify-between text-sm text-gray-500">
-                  <span>{formatBytes(file.size)}</span>
-                  <span
-                    className={`px-2 py-1 rounded text-xs ${
-                      file.visibility === 'public'
-                        ? 'bg-green-100 text-green-700'
-                        : file.visibility === 'password'
-                        ? 'bg-yellow-100 text-yellow-700'
-                        : 'bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    {file.visibility}
-                  </span>
-                </div>
-
-                <div className="mt-3 pt-3 border-t flex items-center justify-between text-xs text-gray-500">
-                  <span>{new Date(file.createdAt).toLocaleDateString()}</span>
-                  <span>{file.downloads} downloads</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
-
-      {/* Upload Modal */}
-      {showUpload && (
-        <FileUpload
-          onSuccess={() => queryClient.invalidateQueries(['myFiles'])}
-          onClose={() => setShowUpload(false)}
-        />
-      )}
-    </Layout>
+    </div>
   );
 };
 
-const formatBytes = (bytes) => {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-};
-
-export default FilesPage;
+export default FileUpload;
