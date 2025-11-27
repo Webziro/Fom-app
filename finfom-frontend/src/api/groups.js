@@ -13,13 +13,12 @@
 import axios from './axios';
 
 export const groupsAPI = {
-  // Existing functions
-  createGroup: (data) => axios.post('api/groups', data),
-  getMyGroups: () => axios.get('api/groups/my-groups'), // Fixed to use correct endpoint
-  getGroup: (id) => axios.get(`api/groups/${id}`),
-  getGroupFiles: (id, params) => axios.get(`api/groups/${id}/files`, { params }),
-  updateGroup: (id, data) => axios.put(`api/groups/${id}`, data),
-  deleteGroup: (id) => axios.delete(`api/groups/${id}`),
-  getAllGroups: () => axios.get('api/groups'), 
-  createOrGetGroup: (data) => axios.post('api/groups/create-or-get', data), 
+  getAllGroups: () => axios.get('/groups'),  // Remove "api/" prefix
+  createOrGetGroup: (data) => axios.post('/groups/create-or-get', data),  // Remove "api/" prefix
+  createGroup: (data) => axios.post('/groups', data),  // Remove "api/" prefix
+  getMyGroups: () => axios.get('/groups/my-groups'),  // Remove "api/" prefix
+  getGroup: (id) => axios.get(`/groups/${id}`),  // Remove "api/" prefix
+  getGroupFiles: (id, params) => axios.get(`/groups/${id}/files`, { params }),
+  updateGroup: (id, data) => axios.put(`/groups/${id}`, data),
+  deleteGroup: (id) => axios.delete(`/groups/${id}`),
 };
