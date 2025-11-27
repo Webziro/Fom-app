@@ -22,17 +22,20 @@ const FileUpload = ({ onSuccess, onClose }) => {
   const [dragActive, setDragActive] = useState(false);
 
   // Load existing groups when component mounts
+
   useEffect(() => {
-    const loadGroups = async () => {
-      try {
-        const response = await groupsAPI.getAllGroups();
-        setGroups(response.data || []);
-      } catch (error) {
-        toast.error('Failed to load groups');
-      }
-    };
-    loadGroups();
-  }, []);
+  const loadGroups = async () => {
+    try {
+      const response = await groupsAPI.getAllGroups();
+      console.log('Groups API response:', response.data); 
+      setGroups(response.data.data || []);
+    } catch (error) {
+      console.error('Error loading groups:', error);
+      toast.error('Failed to load groups');
+    }
+  };
+  loadGroups();
+}, []);
 
   const handleDrag = (e) => {
     e.preventDefault();
