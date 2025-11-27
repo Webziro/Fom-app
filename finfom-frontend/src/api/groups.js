@@ -1,7 +1,7 @@
 import axios from './axios';
 
 export const groupsAPI = {
-  getAllGroups: () => axios.get('/api/groups'),  // Include the full path starting with /api/groups
+  getAllGroups: () => axios.get('/api/groups'),
   createOrGetGroup: (data) => axios.post('/api/groups/create-or-get', data),
   createGroup: (data) => axios.post('/api/groups', data),
   getMyGroups: () => axios.get('/api/groups/my-groups'),
