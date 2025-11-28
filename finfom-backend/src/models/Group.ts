@@ -1,5 +1,3 @@
-// src/models/Group.ts — FINAL VERSION THAT WORKS PERFECTLY
-
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IGroup extends Document {
