@@ -19,7 +19,7 @@ const GroupSchema = new Schema<IGroup>(
       trim: true,
       maxlength: 100,
       lowercase: true,
-      unique: true, // Ensures no duplicate group names
+      unique: true,
     },
     displayName: {
       type: String,
