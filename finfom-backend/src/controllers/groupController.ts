@@ -87,7 +87,7 @@ export const updateGroup = async (req: AuthRequest, res: Response) => {
     }
 
     if (group.ownerId.toString() !== req.user!._id.toString()) {
-      return res.status(403).json({ success: false, message: 'Not authorized' });
+      return res.status(403).json({ success: false, message: 'This is not authorized' });
     }
 
     const { title, description } = req.body;
