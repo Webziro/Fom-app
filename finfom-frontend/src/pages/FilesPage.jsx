@@ -166,46 +166,48 @@ const FilesPage = () => {
                     <p className="text-sm text-gray-600 mb-3 line-clamp-2">{file.description}</p>
                   )}
 
-                  <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
-                    <span>{formatBytes(file.size)}</span>
-                    <span
-                      className={`px-2 py-1 rounded text-xs ${file.visibility === 'public'
-                          ? 'bg-green-100 text-green-700'
-                          : file.visibility === 'password'
-                            ? 'bg-yellow-100 text-yellow-700'
-                            : 'bg-gray-100 text-gray-700'
-                        }`}
-                    >
-                      {file.visibility}
-                    </span>
-                  </div>
+            <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
+              <span>{formatBytes(file.size)}</span>
+              <span
+                className={`px-2 py-1 rounded text-xs ${file.visibility === 'public'
+                  ? 'bg-green-100 text-green-700'
+                  : file.visibility === 'password'
+                    ? 'bg-yellow-100 text-yellow-700'
+                    : 'bg-gray-100 text-gray-700'
+                  }`}
+              >
+                {file.visibility}
+              </span>
+            </div>
 
-                  {!isOwner && file.uploaderId && (
-                    <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
-                      <User className="w-3 h-3" />
-                      <span>Uploaded by {file.uploaderId.username}</span>
-                    </div>
-                  )}
+            {!isOwner && file.uploaderId && (
+              <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+                <User className="w-3 h-3" />
+                <span>Uploaded by {file.uploaderId.username}</span>
+              </div>
+            )}
 
-                  <div className="mt-3 pt-3 border-t flex items-center justify-between text-xs text-gray-500">
-                    <span>{new Date(file.createdAt).toLocaleDateString()}</span>
-                    <span>{file.downloads} downloads</span>
-                  </div>
-                </div>
-              );
-            })}
+            <div className="mt-3 pt-3 border-t flex items-center justify-between text-xs text-gray-500">
+              <span>{new Date(file.createdAt).toLocaleDateString()}</span>
+              <span>{file.downloads} downloads</span>
+            </div>
           </div>
-        )}
+        );
+            })}
       </div>
+        )}
+    </div>
 
-      {/* Upload Modal */}
-      {showUpload && (
-        <FileUpload
-          onSuccess={() => queryClient.invalidateQueries({ queryKey: ['myFiles'] })}
-          onClose={() => setShowUpload(false)}
-        />
-      )}
-    </Layout>
+      {/* Upload Modal */ }
+  {
+    showUpload && (
+      <FileUpload
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['myFiles'] })}
+        onClose={() => setShowUpload(false)}
+      />
+    )
+  }
+    </Layout >
   );
 };
 
