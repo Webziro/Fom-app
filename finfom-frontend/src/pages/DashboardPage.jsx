@@ -136,81 +136,52 @@ const DashboardPage = () => {
                     <div className="flex items-center gap-3">
                       <span
                         className={`text-xs px-2 py-1 rounded ${file.visibility === 'public'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-gray-100 text-gray-700'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-gray-100 text-gray-700'
                           }`}
                       >
                         {file.visibility}
-                      </span>
-
-                      <div className="relative group/menu">
-                        <button className="p-1 hover:bg-gray-200 rounded">
-                          <MoreVertical className="w-5 h-5 text-gray-400" />
-                        </button>
-                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border hidden group-hover/menu:block z-10">
-                          <button
-                            onClick={() => handleDownload(file._id)}
-                            className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left"
-                          >
-                            <Download className="w-4 h-4" />
-                            Download
-                          </button>
-                          {isOwner && (
-                            <button
-                              onClick={() => handleDelete(file._id)}
-                              className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left text-red-600"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              Delete
-                            </button>
-                          )}
-                        </div>
-                      </div>
+            )}
                     </div>
                   </div>
-                );
-              })
-            )}
-          </div>
-        </div>
 
-        {/* Recent Groups */}
-        <div className="card">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Your Groups</h2>
-            <Link to="/groups" className="hover:bg-[#1d4ed8] hover:text-primary-700 text-sm">
-              View All →
-            </Link>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {groups.length === 0 ? (
-              <p className="text-gray-500 col-span-3 text-center py-4">
-                No groups yet. Create your first group!
-              </p>
-            ) : (
-              groups.slice(0, 3).map((group) => (
-                <div key={group._id} className="p-4 border border-gray-200 rounded-lg hover:border-primary-300 transition-colors">
-                  <div className="flex items-center gap-2 mb-2">
-                    <FolderOpen className="w-5 h-5 hover:bg-[#1d4ed8]" />
-                    <h3 className="font-medium">{group.title}</h3>
+        {/* Recent Groups */ }
+                <div className="card">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold">Your Groups</h2>
+                    <Link to="/groups" className="hover:bg-[#1d4ed8] hover:text-primary-700 text-sm">
+                      View All →
+                    </Link>
                   </div>
-                  <p className="text-sm text-gray-600">{group.fileCount || 0} files</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {groups.length === 0 ? (
+                      <p className="text-gray-500 col-span-3 text-center py-4">
+                        No groups yet. Create your first group!
+                      </p>
+                    ) : (
+                      groups.slice(0, 3).map((group) => (
+                        <div key={group._id} className="p-4 border border-gray-200 rounded-lg hover:border-primary-300 transition-colors">
+                          <div className="flex items-center gap-2 mb-2">
+                            <FolderOpen className="w-5 h-5 hover:bg-[#1d4ed8]" />
+                            <h3 className="font-medium">{group.title}</h3>
+                          </div>
+                          <p className="text-sm text-gray-600">{group.fileCount || 0} files</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
-              ))
-            )}
-          </div>
-        </div>
       </div>
-    </Layout>
-  );
+        </Layout>
+        );
 };
 
 const formatBytes = (bytes) => {
   if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
 };
 
-export default DashboardPage;
+        export default DashboardPage;
