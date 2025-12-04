@@ -137,7 +137,7 @@ const DashboardPage = () => {
               <p className="text-gray-500 text-center py-4">No files yet. Upload your first file!</p>
             ) : (
               files.map((file) => {
-                const isOwner = user?._id === file.uploaderId?._id;
+                const isOwner = user?.id === file.uploaderId?._id;
                 const isMenuOpen = openMenuId === file._id;
 
                 return (
@@ -158,8 +158,8 @@ const DashboardPage = () => {
                     <div className="flex items-center gap-3">
                       <span
                         className={`text-xs px-2 py-1 rounded ${file.visibility === 'public'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-gray-100 text-gray-700'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-gray-100 text-gray-700'
                           }`}
                       >
                         {file.visibility}
