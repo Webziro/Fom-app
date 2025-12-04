@@ -108,46 +108,17 @@ const FilesPage = () => {
 
               return (
                 <div key={file._id} className="card hover:shadow-lg transition-shadow">
-                  <div className="flex items-start justify-between mb-3">
-                    <FileText className="w-8 h-8 text-primary-600" />
-                    <div className="relative group">
-                      <button className="p-1 hover:bg-gray-100 rounded">
-                        <MoreVertical className="w-5 h-5 text-gray-400" />
-                      </button>
-                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border hidden group-hover:block z-10">
-                        <button
-                          onClick={() => handleDownload(file._id)}
-                          className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left"
-                        >
-                          <Download className="w-4 h-4" />
-                          Download
-                        </button>
-                        {isOwner && (
-                          <button
-                            onClick={() => handleDelete(file._id)}
-                            className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left text-red-600"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Delete
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <h3 className="font-semibold text-gray-900 mb-1 truncate">{file.title}</h3>
-                  {file.description && (
-                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">{file.description}</p>
+                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">{file.description}</p>
                   )}
 
                   <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
                     <span>{formatBytes(file.size)}</span>
                     <span
                       className={`px-2 py-1 rounded text-xs ${file.visibility === 'public'
-                          ? 'bg-green-100 text-green-700'
-                          : file.visibility === 'password'
-                            ? 'bg-yellow-100 text-yellow-700'
-                            : 'bg-gray-100 text-gray-700'
+                        ? 'bg-green-100 text-green-700'
+                        : file.visibility === 'password'
+                          ? 'bg-yellow-100 text-yellow-700'
+                          : 'bg-gray-100 text-gray-700'
                         }`}
                     >
                       {file.visibility}
