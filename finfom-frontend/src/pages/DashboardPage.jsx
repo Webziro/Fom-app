@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useContext, useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { filesAPI } from '../api/files';
 import { groupsAPI } from '../api/groups';
@@ -11,6 +11,20 @@ import toast from 'react-hot-toast';
 const DashboardPage = () => {
   const { user } = useContext(AuthContext);
   const queryClient = useQueryClient();
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const menuRef = useRef(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setOpenMenuId(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const { data: filesData } = useQuery({
     queryKey: ['myFiles'],
@@ -27,6 +41,7 @@ const DashboardPage = () => {
     onSuccess: () => {
       toast.success('File deleted successfully');
       queryClient.invalidateQueries({ queryKey: ['myFiles'] });
+      setOpenMenuId(null);
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || 'Failed to delete file');
@@ -41,6 +56,7 @@ const DashboardPage = () => {
       const response = await filesAPI.downloadFile(fileId);
       window.open(response.data.data.downloadUrl, '_blank');
       toast.success('Download started');
+      setOpenMenuId(null);
     } catch (error) {
       toast.error('Failed to download file');
     }
@@ -50,6 +66,10 @@ const DashboardPage = () => {
     if (window.confirm('Are you sure you want to delete this file?')) {
       deleteMutation.mutate(fileId);
     }
+  };
+
+  const toggleMenu = (fileId) => {
+    setOpenMenuId(openMenuId === fileId ? null : fileId);
   };
 
   const stats = [
@@ -118,10 +138,12 @@ const DashboardPage = () => {
             ) : (
               files.map((file) => {
                 const isOwner = user?._id === file.uploaderId?._id;
+                const isMenuOpen = openMenuId === file._id;
+
                 return (
                   <div
                     key={file._id}
-                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors group"
+                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       <FileText className="w-5 h-5 text-gray-400" />
@@ -143,28 +165,33 @@ const DashboardPage = () => {
                         {file.visibility}
                       </span>
 
-                      <div className="relative group/menu">
-                        <button className="p-1 hover:bg-gray-200 rounded">
+                      <div className="relative" ref={isMenuOpen ? menuRef : null}>
+                        <button
+                          onClick={() => toggleMenu(file._id)}
+                          className="p-1 hover:bg-gray-200 rounded"
+                        >
                           <MoreVertical className="w-5 h-5 text-gray-400" />
                         </button>
-                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border hidden group-hover/menu:block z-10">
-                          <button
-                            onClick={() => handleDownload(file._id)}
-                            className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left"
-                          >
-                            <Download className="w-4 h-4" />
-                            Download
-                          </button>
-                          <button
-                            onClick={() => handleDelete(file._id)}
-                            className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left text-red-600"
-                            disabled={!isOwner}
-                            style={{ opacity: isOwner ? 1 : 0.5, cursor: isOwner ? 'pointer' : 'not-allowed' }}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Delete
-                          </button>
-                        </div>
+                        {isMenuOpen && (
+                          <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-10">
+                            <button
+                              onClick={() => handleDownload(file._id)}
+                              className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left rounded-t-lg"
+                            >
+                              <Download className="w-4 h-4" />
+                              Download
+                            </button>
+                            <button
+                              onClick={() => handleDelete(file._id)}
+                              className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left text-red-600 rounded-b-lg"
+                              disabled={!isOwner}
+                              style={{ opacity: isOwner ? 1 : 0.5, cursor: isOwner ? 'pointer' : 'not-allowed' }}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Delete
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
