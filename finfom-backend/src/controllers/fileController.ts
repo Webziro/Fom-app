@@ -100,7 +100,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
           await cloudinary.uploader.destroy(result.public_id).catch(() => { });
           return res.status(500).json({
             success: false,
-            message: 'Failed to save file metadata to database',
+            message: 'Failed to save new file metadata to database',
             error: dbError.message,
           });
         }
