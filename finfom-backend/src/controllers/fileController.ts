@@ -139,7 +139,7 @@ export const getMyFiles = async (req: AuthRequest, res: Response) => {
 
     const files = await File.find(query)
       .populate('groupId', 'title')
-      .populate('uploaderId', 'username')
+      .populate('uploaderId', 'username _id')
       .sort({ createdAt: -1 })
       .limit(Number(limit))
       .skip((Number(page) - 1) * Number(limit));
