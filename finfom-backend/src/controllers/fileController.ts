@@ -97,7 +97,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
           });
         } catch (dbError: any) {
           // Rollback: delete from Cloudinary if database save fails
-          await cloudinary.uploader.destroy(result.public_id).catch(() => {});
+          await cloudinary.uploader.destroy(result.public_id).catch(() => { });
           return res.status(500).json({
             success: false,
             message: 'Failed to save file metadata to database',
@@ -114,85 +114,40 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
     stream.pipe(uploadStream);
 
   } catch (error: any) {
-    console.error('Upload controller error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error during upload',
-      error: error.message,
-    });
-  }
-};
-
-export const getMyFiles = async (req: AuthRequest, res: Response) => {
-  try {
-    const { page = 1, limit = 10, search } = req.query;
-    const query: any = { uploaderId: req.user!._id };
-
-    if (search) {
-      query.$text = { $search: search as string };
-    }
-
-    const files = await File.find(query)
-      .populate('groupId', 'title')
-      .sort({ createdAt: -1 })
-      .limit(Number(limit))
-      .skip((Number(page) - 1) * Number(limit));
-
-    const total = await File.countDocuments(query);
-
-    res.json({
-      success: true,
-      data: files,
-      pagination: {
-        page: Number(page),
-        limit: Number(limit),
-        total,
-        pages: Math.ceil(total / Number(limit)),
-      },
-    });
-  } catch (error: any) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
-export const getFile = async (req: AuthRequest, res: Response) => {
-  try {
-    const file = await File.findById(req.params.id)
-      .populate('uploaderId', 'username email')
       .populate('groupId', 'title');
 
-    if (!file) {
-      return res.status(404).json({ message: 'File not found' });
-    }
+if (!file) {
+  return res.status(404).json({ message: 'File not found' });
+}
 
-    // Check visibility permissions
-    if (file.visibility === 'private') {
-      if (!req.user || file.uploaderId._id.toString() !== req.user._id.toString()) {
-        return res.status(403).json({ message: 'Access denied' });
-      }
-    }
-
-    if (file.visibility === 'password') {
-      const { password } = req.body;
-      if (!password) {
-        return res.status(401).json({ message: 'Password required' });
-      }
-
-      const fileWithPassword = await File.findById(req.params.id).select('+password');
-      if (!fileWithPassword) {
-        return res.status(404).json({ message: 'File not found' });
-      }
-
-      const isMatch = await fileWithPassword.comparePassword(password);
-      if (!isMatch) {
-        return res.status(401).json({ message: 'Incorrect password' });
-      }
-    }
-
-    res.json({ success: true, data: file });
-  } catch (error: any) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+// Check visibility permissions
+if (file.visibility === 'private') {
+  if (!req.user || file.uploaderId._id.toString() !== req.user._id.toString()) {
+    return res.status(403).json({ message: 'Access denied' });
   }
+}
+
+if (file.visibility === 'password') {
+  const { password } = req.body;
+  if (!password) {
+    return res.status(401).json({ message: 'Password required' });
+  }
+
+  const fileWithPassword = await File.findById(req.params.id).select('+password');
+  if (!fileWithPassword) {
+    return res.status(404).json({ message: 'File not found' });
+  }
+
+  const isMatch = await fileWithPassword.comparePassword(password);
+  if (!isMatch) {
+    return res.status(401).json({ message: 'Incorrect password' });
+  }
+}
+
+res.json({ success: true, data: file });
+  } catch (error: any) {
+  res.status(500).json({ message: 'Server error', error: error.message });
+}
 };
 
 export const downloadFile = async (req: AuthRequest, res: Response) => {
