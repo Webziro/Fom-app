@@ -228,11 +228,17 @@ export const downloadFile = async (req: AuthRequest, res: Response) => {
       const resourceType = file.fileType?.startsWith('video/') ? 'video' :
         file.fileType?.startsWith('image/') ? 'image' : 'raw';
 
-      downloadUrl = cloudinary.url(publicId, {
-        resource_type: resourceType,
-        flags: 'attachment',
-        secure: true,
-      });
+      // For raw files (PDFs, docs, etc), use URL replacement instead of SDK
+      if (resourceType === 'raw') {
+        downloadUrl = file.secureUrl.replace('/upload/', '/upload/fl_attachment/');
+      } else {
+        // For images and videos, use Cloudinary SDK
+        downloadUrl = cloudinary.url(publicId, {
+          resource_type: resourceType,
+          flags: 'attachment',
+          secure: true,
+        });
+      }
     } catch (err) {
       console.error('Error generating Cloudinary download URL:', err);
       // Fallback to original URL if generation fails
