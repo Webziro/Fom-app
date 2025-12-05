@@ -1,1 +1,21 @@
-Essential Netlify configuration for a Vite Single Page Application (SPA)--- Build Settings ---[build]command = "npm run build"publish = "dist"--- Redirects and Rewrites (CRITICAL for client-side routing like React Router) ---This rule sends all unmatched requests to index.html, letting the client-side router handle them.[[redirects]]from = "/*"to = "/index.html"status = 200force = true--- Headers for MIME Type Fix ---Fixes the "application/octet-stream" error for modern JavaScript module files.[[headers]]for = "/assets/*.js"[headers.values]Content-Type = "text/javascript"
+# Essential Netlify configuration for a Vite Single Page Application (SPA)
+
+# --- Build Settings ---
+[build]
+command = "npm run build"
+publish = "dist"
+
+# --- Redirects and Rewrites (CRITICAL for client-side routing like React Router) ---
+# This rule sends all unmatched requests to index.html, letting the client-side router handle them.
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200
+force = true
+
+# --- Headers for MIME Type Fix ---
+# Fixes the "application/octet-stream" error for modern JavaScript module files.
+[[headers]]
+for = "/assets/*.js"
+[headers.values]
+Content-Type = "text/javascript"
