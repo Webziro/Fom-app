@@ -56,11 +56,26 @@ const DashboardPage = () => {
   const handleDownload = async (fileId) => {
     try {
       const response = await filesAPI.downloadFile(fileId);
-      window.open(response.data.data.downloadUrl, '_blank');
+      const downloadUrl = response.data.data.downloadUrl;
+      const fileName = response.data.data.fileName;
+
+      // Create a temporary anchor element to trigger download
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = fileName || 'download';
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+
+      // Trigger the download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
       toast.success('Download started');
       setOpenMenuId(null);
     } catch (error) {
       toast.error('Failed to download file');
+      console.error('Download error:', error);
     }
   };
 
