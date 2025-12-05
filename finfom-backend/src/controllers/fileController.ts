@@ -219,11 +219,24 @@ export const downloadFile = async (req: AuthRequest, res: Response) => {
     file.downloads += 1;
     await file.save();
 
-    // Add fl_attachment flag to force download instead of opening in browser
+    // Generate download URL using Cloudinary SDK with fl_attachment flag
     let downloadUrl = file.secureUrl;
-    if (downloadUrl.includes('cloudinary.com')) {
-      // Insert fl_attachment before the version or file path
-      downloadUrl = downloadUrl.replace('/upload/', '/upload/fl_attachment/');
+
+    try {
+      // Use Cloudinary's url method to generate a proper download URL
+      const publicId = file.cloudinaryId;
+      const resourceType = file.fileType?.startsWith('video/') ? 'video' :
+        file.fileType?.startsWith('image/') ? 'image' : 'raw';
+
+      downloadUrl = cloudinary.url(publicId, {
+        resource_type: resourceType,
+        flags: 'attachment',
+        secure: true,
+      });
+    } catch (err) {
+      console.error('Error generating Cloudinary download URL:', err);
+      // Fallback to original URL if generation fails
+      downloadUrl = file.secureUrl;
     }
 
     res.json({
