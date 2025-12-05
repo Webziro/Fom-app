@@ -19,15 +19,26 @@ const app = express();
 // Connect to database
 connectDB();
 
-// Security middleware and CORS configuration for the frontend
+// --- DYNAMIC CORS CONFIGURATION (Fixes localhost issue) ---
+const isProduction = process.env.NODE_ENV === 'production';
+
+// 1. Define the allowed origins dynamically.
+const allowedOrigins = isProduction
+  ? ["https://finfom.netlify.app"]
+  : ["http://localhost:5173"];
+
+// Security middleware
 app.use(helmet());
 
+// 2. Configure CORS middleware using the dynamic origins array.
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
+// Body parsing and compression
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(compression());
@@ -43,8 +54,7 @@ app.use(httpLogger);
 // Rate limiting
 app.use('/api', apiLimiter);
 
-
-// Routes
+// --- ROUTES ---
 app.use('/api/auth', authRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/groups', groupRoutes);
@@ -58,7 +68,9 @@ app.get('/health', (req, res) => {
   });
 });
 
-// 404 handler
+// --- FINAL HANDLERS ---
+
+// 404 handler (Must be placed after all defined routes)
 app.use('*', (req, res) => {
   res.status(404).json({
     message: 'Route not found',
@@ -66,32 +78,16 @@ app.use('*', (req, res) => {
   });
 });
 
-//500 handler
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Internal Server Error' });
-});
-
-//200 handler
-app.use((req, res, next) => {
-  res.status(200).json({ message: 'OK' });
-  next();
-});
-
-//300 handler
-app.use((req, res, next) => {
-  res.status(300).json({ message: 'Multiple Choices' });
-  next();
-});
-
-// Error handling
+// Centralized Error handling (Must be the very last middleware to catch errors)
+// Note: Removed redundant 500, 200, and 300 handlers.
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
 const server = app.listen(PORT, () => {
   logger.info(`🚀 Server running on port ${PORT}`);
-  logger.info(`📝 Environment: ${process.env.NODE_ENV}`);
+  logger.info(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.info(`🌐 Allowed CORS Origins: ${allowedOrigins.join(', ')}`);
 });
 
 // Graceful shutdown

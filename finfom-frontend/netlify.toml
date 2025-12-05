@@ -1,0 +1,21 @@
+--- Build Settings ---
+
+[build]
+command = "npm run build"
+publish = "dist"
+
+--- Redirects and Rewrites (CRITICAL for client-side routing like React Router) ---
+Tells Netlify to serve index.html for any path that doesn't exist,allowing the client-side router to take over.
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200
+force = true
+
+--- Headers for MIME Type Fix (Fixes the "application/octet-stream" error) ---
+This ensures that modern JS module files are served with the correct MIME type.It explicitly sets "text/javascript" for all assets to override any wrong guesses.
+[[headers]]
+for = "/assets/*.js" # Target only JS files in the assets folder
+[headers.values]
+Content-Type = "text/javascript"
+
