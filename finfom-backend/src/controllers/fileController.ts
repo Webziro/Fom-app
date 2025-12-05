@@ -219,9 +219,16 @@ export const downloadFile = async (req: AuthRequest, res: Response) => {
     file.downloads += 1;
     await file.save();
 
+    // Add fl_attachment flag to force download instead of opening in browser
+    let downloadUrl = file.secureUrl;
+    if (downloadUrl.includes('cloudinary.com')) {
+      // Insert fl_attachment before the version or file path
+      downloadUrl = downloadUrl.replace('/upload/', '/upload/fl_attachment/');
+    }
+
     res.json({
       success: true,
-      data: { downloadUrl: file.secureUrl, fileName: file.title },
+      data: { downloadUrl, fileName: file.title },
     });
   } catch (error: any) {
     res.status(500).json({ message: 'Server error', error: error.message });
