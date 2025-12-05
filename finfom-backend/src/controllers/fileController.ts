@@ -219,38 +219,32 @@ export const downloadFile = async (req: AuthRequest, res: Response) => {
     file.downloads += 1;
     await file.save();
 
-    // Generate download URL using Cloudinary SDK with fl_attachment flag
-    let downloadUrl = file.secureUrl;
+    // Stream the file from Cloudinary
+    const https = require('https');
+    const http = require('http');
 
-    try {
-      // Use Cloudinary's url method to generate a proper download URL
-      const publicId = file.cloudinaryId;
-      const resourceType = file.fileType?.startsWith('video/') ? 'video' :
-        file.fileType?.startsWith('image/') ? 'image' : 'raw';
+    const protocol = file.secureUrl.startsWith('https') ? https : http;
 
-      // For raw files (PDFs, docs, etc), use URL replacement instead of SDK
-      if (resourceType === 'raw') {
-        downloadUrl = file.secureUrl.replace('/upload/', '/upload/fl_attachment/');
-      } else {
-        // For images and videos, use Cloudinary SDK
-        downloadUrl = cloudinary.url(publicId, {
-          resource_type: resourceType,
-          flags: 'attachment',
-          secure: true,
-        });
+    protocol.get(file.secureUrl, (cloudinaryResponse: any) => {
+      // Set headers from Cloudinary response
+      res.setHeader('Content-Disposition', `attachment; filename="${file.title}"`);
+      res.setHeader('Content-Type', cloudinaryResponse.headers['content-type'] || file.fileType || 'application/octet-stream');
+      res.setHeader('Content-Length', cloudinaryResponse.headers['content-length']);
+
+      // Pipe the file stream to response
+      cloudinaryResponse.pipe(res);
+    }).on('error', (err: any) => {
+      console.error('Error streaming file:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ message: 'Error downloading file' });
       }
-    } catch (err) {
-      console.error('Error generating Cloudinary download URL:', err);
-      // Fallback to original URL if generation fails
-      downloadUrl = file.secureUrl;
-    }
-
-    res.json({
-      success: true,
-      data: { downloadUrl, fileName: file.title },
     });
+
   } catch (error: any) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('Download error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ message: 'Server error', error: error.message });
+    }
   }
 };
 

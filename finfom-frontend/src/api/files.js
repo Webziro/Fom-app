@@ -7,7 +7,9 @@ export const filesAPI = {
   getMyFiles: (params) => axios.get('api/files', { params }),
   getPublicFiles: (params) => axios.get('api/files/public', { params }),
   getFile: (id, password) => axios.get(`api/files/${id}`, { data: { password } }),
-  downloadFile: (id, password) => axios.post(`api/files/${id}/download`, { password }),
+  downloadFile: (id, password) => axios.post(`api/files/${id}/download`, { password }, {
+    responseType: 'blob', // Important: handle binary data
+  }),
   updateFile: (id, data) => axios.put(`api/files/${id}`, data),
   deleteFile: (id) => axios.delete(`api/files/${id}`),
 };

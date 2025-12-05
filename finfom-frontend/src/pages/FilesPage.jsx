@@ -61,20 +61,30 @@ const FilesPage = () => {
   const handleDownload = async (fileId) => {
     try {
       const response = await filesAPI.downloadFile(fileId);
-      const downloadUrl = response.data.data.downloadUrl;
-      const fileName = response.data.data.fileName;
 
-      // Create a temporary anchor element to trigger download
+      // Create blob URL from response
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+
+      // Get filename from Content-Disposition header or use default
+      const contentDisposition = response.headers['content-disposition'];
+      let fileName = 'download';
+      if (contentDisposition) {
+        const fileNameMatch = contentDisposition.match(/filename="(.+)"/); if (fileNameMatch) {
+          fileName = fileNameMatch[1];
+        }
+      }
+
+      // Create temporary link and trigger download
       const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = fileName || 'download';
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-
-      // Trigger the download
+      link.href = url;
+      link.download = fileName;
       document.body.appendChild(link);
       link.click();
+
+      // Cleanup
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
 
       toast.success('Download started');
       setOpenMenuId(null);
