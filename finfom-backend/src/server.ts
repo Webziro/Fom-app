@@ -13,7 +13,7 @@ import { apiLimiter } from './middleware/rateLimiter';
 import { sanitizeData, preventXSS, preventHPP } from './middleware/security';
 import logger from './middleware/logger';
 
-// Initialize Express app
+// Initialize the Express app
 const app = express();
 
 // Connect to database
