@@ -7,15 +7,20 @@ publish = "dist"
 
 # --- Redirects and Rewrites (CRITICAL for client-side routing like React Router) ---
 # This rule sends all unmatched requests to index.html, letting the client-side router handle them.
+# IMPORTANT: Removed 'force = true' to allow static assets to be served normally
 [[redirects]]
 from = "/*"
 to = "/index.html"
 status = 200
-force = true
 
-# --- Headers for MIME Type Fix ---
-# Fixes the "application/octet-stream" error for modern JavaScript module files.
+# --- Headers for Static Assets ---
+# Ensure proper MIME types for JavaScript files
 [[headers]]
-for = "/assets/*.js"
+for = "/*.js"
 [headers.values]
 Content-Type = "text/javascript"
+
+[[headers]]
+for = "/assets/*"
+[headers.values]
+Cache-Control = "public, max-age=31536000, immutable"
