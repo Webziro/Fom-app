@@ -1,11 +1,11 @@
 import mongoose from 'mongoose';
-import Group from '../src/models/Group';
+import Group from '../models/Group';
 
 const seedSystemGroups = async () => {
   try {
     // Check if system groups already exist
     const existingSystemGroups = await Group.countDocuments({ isSystem: true });
-    
+
     if (existingSystemGroups > 0) {
       console.log('System groups already exist. Skipping seeding.');
       return;
