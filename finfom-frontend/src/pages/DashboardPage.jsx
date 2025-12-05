@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { filesAPI } from '../api/files';
 import { groupsAPI } from '../api/groups';
 import Layout from '../components/layout/Layout';
+import FilePreviewModal from '../components/files/FilePreviewModal';
 import { AuthContext } from '../context/AuthContext';
 import { FileText, FolderOpen, Download, TrendingUp, MoreVertical, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -12,6 +13,7 @@ const DashboardPage = () => {
   const { user } = useContext(AuthContext);
   const queryClient = useQueryClient();
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [previewFile, setPreviewFile] = useState(null);
   const menuRef = useRef(null);
 
   // Close menu when clicking outside
@@ -143,7 +145,7 @@ const DashboardPage = () => {
                 return (
                   <div
                     key={file._id}
-                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
+                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer" onClick={() => setPreviewFile(file)}
                   >
                     <div className="flex items-center gap-3">
                       <FileText className="w-5 h-5 text-gray-400" />
@@ -228,6 +230,15 @@ const DashboardPage = () => {
           </div>
         </div>
       </div>
+
+      {/* File Preview Modal */}
+      {previewFile && (
+        <FilePreviewModal
+          file={previewFile}
+          onClose={() => setPreviewFile(null)}
+          onDownload={handleDownload}
+        />
+      )}
     </Layout>
   );
 };
@@ -241,3 +252,4 @@ const formatBytes = (bytes) => {
 };
 
 export default DashboardPage;
+

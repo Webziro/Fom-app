@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { filesAPI } from '../api/files';
 import Layout from '../components/layout/Layout';
 import FileUpload from '../components/files/FileUpload';
+import FilePreviewModal from '../components/files/FilePreviewModal';
 import { AuthContext } from '../context/AuthContext';
 import {
   Upload,
@@ -21,6 +22,7 @@ const FilesPage = () => {
   const [showUpload, setShowUpload] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [previewFile, setPreviewFile] = useState(null);
   const queryClient = useQueryClient();
   const { user } = useContext(AuthContext);
   const menuRef = useRef(null);
@@ -128,10 +130,10 @@ const FilesPage = () => {
               const isMenuOpen = openMenuId === file._id;
 
               return (
-                <div key={file._id} className="card hover:shadow-lg transition-shadow">
+                <div key={file._id} className="card hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setPreviewFile(file)}>
                   <div className="flex items-start justify-between mb-3">
                     <FileText className="w-8 h-8 text-primary-600" />
-                    <div className="relative" ref={isMenuOpen ? menuRef : null}>
+                    <div className="relative" ref={isMenuOpen ? menuRef : null} onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => toggleMenu(file._id)}
                         className="p-1 hover:bg-gray-100 rounded"
@@ -203,6 +205,15 @@ const FilesPage = () => {
         <FileUpload
           onSuccess={() => queryClient.invalidateQueries({ queryKey: ['myFiles'] })}
           onClose={() => setShowUpload(false)}
+        />
+      )}
+
+      {/* File Preview Modal */}
+      {previewFile && (
+        <FilePreviewModal
+          file={previewFile}
+          onClose={() => setPreviewFile(null)}
+          onDownload={handleDownload}
         />
       )}
     </Layout>
