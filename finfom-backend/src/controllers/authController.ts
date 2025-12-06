@@ -201,3 +201,66 @@ export const forgotPassword = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+export const googleLogin = async (req: Request, res: Response) => {
+  try {
+    const { token } = req.body;
+    const { OAuth2Client } = require('google-auth-library');
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+
+    const { name, email, sub: googleId } = ticket.getPayload();
+
+    let user = await User.findOne({ $or: [{ googleId }, { email }] });
+
+    if (user) {
+      // If user exists but doesn't have googleId (linked via email), update it
+      if (!user.googleId) {
+        user.googleId = googleId;
+        await user.save();
+      }
+    } else {
+      // Create new user
+      // Generate a random password for Google users (they won't use it)
+      const randomPassword = Math.random().toString(36).slice(-8) + 'A1!';
+
+      // Ensure username is unique
+      let username = name.replace(/\s+/g, '').toLowerCase();
+      const usernameExists = await User.findOne({ username });
+      if (usernameExists) {
+        username += Math.floor(Math.random() * 1000);
+      }
+
+      user = await User.create({
+        username,
+        email,
+        password: randomPassword,
+        googleId,
+        role: 'user'
+      });
+    }
+
+    const jwtToken = generateToken(user._id.toString());
+
+    res.json({
+      success: true,
+      data: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        token: jwtToken
+      }
+    });
+  } catch (error: any) {
+    console.error('Google login error:', error);
+    res.status(500).json({
+      message: 'Google login failed',
+      error: error.message
+    });
+  }
+};

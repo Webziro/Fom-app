@@ -6,6 +6,7 @@ export interface IUser extends Document {
   username: string;
   email: string;
   password: string;
+  googleId?: string;
   role: 'user' | 'admin';
   createdAt: Date;
   updatedAt: Date;
@@ -31,8 +32,16 @@ const UserSchema = new Schema<IUser>({
   },
   password: {
     type: String,
-    required: [true, 'Password is required'],
+    required: function() {
+      return !this.googleId;
+    },
     minlength: 6,
+    select: false
+  },
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true,
     select: false
   },
   role: {
@@ -45,12 +54,13 @@ const UserSchema = new Schema<IUser>({
 });
 
 UserSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
+  if (!this.isModified('password') || !this.password) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
 UserSchema.methods.comparePassword = async function (candidatePassword: string) {
+  if (!this.password) return false;
   return await bcrypt.compare(candidatePassword, this.password);
 };
 

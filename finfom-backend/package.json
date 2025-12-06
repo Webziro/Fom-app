@@ -8,9 +8,8 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "seed": "tsx seeds/seedSystemGroups.ts",
-      "seed:groups": "ts-node scripts/seedGroups.ts"
+    "seed:groups": "ts-node scripts/seedGroups.ts"
   },
-
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -24,6 +23,7 @@
     "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^7.5.1",
     "express-validator": "^7.0.1",
+    "google-auth-library": "^10.5.0",
     "helmet": "^7.1.0",
     "hpp": "^0.2.3",
     "ioredis": "^5.8.2",

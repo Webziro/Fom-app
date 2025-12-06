@@ -1,5 +1,5 @@
- import express from 'express';
-import { register, login, getMe, updateProfile, changePassword } from '../controllers/authController';
+import express from 'express';
+import { register, login, getMe, updateProfile, changePassword, googleLogin } from '../controllers/authController';
 import { protect } from '../middleware/auth';
 import { authLimiter } from '../middleware/rateLimiter';
 import { body } from 'express-validator';
