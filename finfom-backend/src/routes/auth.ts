@@ -17,6 +17,8 @@ router.post('/login', authLimiter, [
   body('password').notEmpty()
 ], login);
 
+router.post('/google', googleLogin);
+
 // Protected routes
 router.get('/me', protect, getMe);
 router.put('/profile', protect, updateProfile);
