@@ -15,29 +15,29 @@ export const register = async (req: Request, res: Response) => {
 
     const userExists = await User.findOne({ $or: [{ email }, { username }] });
     if (userExists) {
-      return res.status(400).json({ 
-        message: 'User already exists with that email or username' 
+      return res.status(400).json({
+        message: 'User already exists with that email or username'
       });
     }
 
     //Username lenght must be between 3 and 30 characters
     if (username.length < 3 || username.length > 30) {
-      return res.status(400).json({ 
-        message: 'Username must be between 3 and 30 characters' 
+      return res.status(400).json({
+        message: 'Username must be between 3 and 30 characters'
       });
     }
     //Email must be valid format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return res.status(400).json({ 
-        message: 'Invalid email format' 
+      return res.status(400).json({
+        message: 'Invalid email format'
       });
     }
     //Password must be at least 8 characters, contain at least one uppercase letter, one lowercase letter, one number and one special character
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!passwordRegex.test(password)) {
-      return res.status(400).json({ 
-        message: 'Password must be at least 8 characters, contain at least one uppercase letter, one lowercase letter, one number and one special character' 
+      return res.status(400).json({
+        message: 'Password must be at least 8 characters, contain at least one uppercase letter, one lowercase letter, one number and one special character'
       });
     }
 
@@ -55,9 +55,9 @@ export const register = async (req: Request, res: Response) => {
       }
     });
   } catch (error: any) {
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Server error during registration',
-      error: error.message 
+      error: error.message
     });
   }
 };
@@ -94,9 +94,9 @@ export const login = async (req: Request, res: Response) => {
       }
     });
   } catch (error: any) {
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Server error during login',
-      error: error.message 
+      error: error.message
     });
   }
 };
@@ -113,7 +113,7 @@ export const getMe = async (req: AuthRequest, res: Response) => {
 export const updateProfile = async (req: AuthRequest, res: Response) => {
   try {
     const { username, email } = req.body;
-    
+
     const user = await User.findById(req.user?._id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -152,7 +152,11 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    if (!currentPassword || !newPassword) { return res.status(400).json({ message: 'Current password and new password are required' }); }`n`n    const isMatch = await user.comparePassword(currentPassword);
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current password and new password are required' });
+    }
+
+    const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {
       return res.status(401).json({ message: 'Current password is incorrect' });
     }
@@ -183,11 +187,11 @@ export const forgotPassword = async (req: Request, res: Response) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
-    } 
+    }
     const { email } = req.body;
 
     const user = await User.findOne({ email });
-    if (!user){
+    if (!user) {
       return res.status(404).json({ message: 'User with this email does not exist' });
     }
     //Generate a password reset token and send email logic goes here
