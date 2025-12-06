@@ -59,6 +59,15 @@ app.use('/api/auth', authRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/groups', groupRoutes);
 
+// Root handler
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Welcome to Finfom API',
+    status: 'running',
+    documentation: '/api-docs' // Placeholder if you have docs
+  });
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({

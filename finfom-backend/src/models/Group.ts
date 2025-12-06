@@ -23,7 +23,6 @@ const GroupSchema = new Schema<IGroup>(
     },
     displayName: {
       type: String,
-      required: [true, 'Group display name is required'],
       trim: true,
     },
     description: {
@@ -34,7 +33,7 @@ const GroupSchema = new Schema<IGroup>(
     ownerId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: function() {
+      required: function () {
         return !this.isSystem;
       },
       index: true,
