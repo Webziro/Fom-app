@@ -6,4 +6,5 @@ export const authAPI = {
   getMe: () => axios.get('api/auth/me'),
   updateProfile: (data) => axios.put('api/auth/profile', data),
   changePassword: (data) => axios.put('api/auth/password', data),
+  googleLogin: (token) => axios.post('api/auth/google', { token }),
 };

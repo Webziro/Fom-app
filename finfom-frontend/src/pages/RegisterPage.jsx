@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import Input from '../components/common/Input';
 import Button from '../components/common/Button';
 import { FileText } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -14,7 +15,7 @@ const RegisterPage = () => {
     confirmPassword: '',
   });
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
+  const { register, googleLogin } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -39,6 +40,16 @@ const RegisterPage = () => {
       toast.error(error.response?.data?.message || 'Registration failed');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      await googleLogin(credentialResponse.credential);
+      toast.success('Registration successful!');
+      navigate('/dashboard');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Google Registration failed');
     }
   };
 
@@ -108,6 +119,23 @@ const RegisterPage = () => {
           >
             Create Account
           </Button>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">Or continue with</span>
+            </div>
+          </div>
+
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => toast.error('Google Sign Up Failed')}
+              useOneTap
+            />
+          </div>
         </form>
 
         <p className="text-center text-gray-600 mt-6">
