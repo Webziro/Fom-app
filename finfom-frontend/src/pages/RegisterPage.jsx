@@ -42,6 +42,12 @@ const RegisterPage = () => {
     }
   };
 
+  const isValid =
+    formData.username.length >= 3 &&
+    formData.email.match(/^\S+@\S+\.\S+$/) &&
+    formData.password.length >= 6 &&
+    formData.password === formData.confirmPassword;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-blue-100 flex items-center justify-center p-4">
       <div className="card max-w-md w-full">
@@ -94,7 +100,12 @@ const RegisterPage = () => {
             required
           />
 
-          <Button type="submit" loading={loading} className="w-full">
+          <Button
+            type="submit"
+            loading={loading}
+            className="w-full"
+            disabled={!isValid}
+          >
             Create Account
           </Button>
         </form>

@@ -31,6 +31,10 @@ const LoginPage = () => {
     }
   };
 
+  const isValid = 
+    formData.email.match(/^\S+@\S+\.\S+$/) && 
+    formData.password.length >= 6;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-blue-100 flex items-center justify-center p-4">
       <div className="card max-w-md w-full">
@@ -63,7 +67,12 @@ const LoginPage = () => {
             required
           />
 
-          <Button type="submit" loading={loading} className="w-full">
+          <Button 
+            type="submit" 
+            loading={loading} 
+            className="w-full"
+            disabled={!isValid}
+          >
             Sign In
           </Button>
         </form>
