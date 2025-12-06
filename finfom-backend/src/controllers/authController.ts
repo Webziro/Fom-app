@@ -152,7 +152,7 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const isMatch = await user.comparePassword(currentPassword);
+    if (!currentPassword || !newPassword) { return res.status(400).json({ message: 'Current password and new password are required' }); }`n`n    const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {
       return res.status(401).json({ message: 'Current password is incorrect' });
     }

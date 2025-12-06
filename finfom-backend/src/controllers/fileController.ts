@@ -268,7 +268,7 @@ export const updateFile = async (req: AuthRequest, res: Response) => {
       if (!group) {
         return res.status(400).json({ message: 'Invalid group' });
       }
-      file.groupId = groupId;
+      file.groupId = groupId as any;
     }
     if (visibility) file.visibility = visibility;
     if (visibility === 'password' && password) {
