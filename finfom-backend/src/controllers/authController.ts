@@ -3,6 +3,7 @@ import { validationResult } from 'express-validator';
 import User from '../models/User';
 import { generateToken } from '../config/jwt';
 import { AuthRequest } from '../types';
+import axios from 'axios';
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -205,62 +206,57 @@ export const forgotPassword = async (req: Request, res: Response) => {
 export const googleLogin = async (req: Request, res: Response) => {
   try {
     const { token } = req.body;
-    const { OAuth2Client } = require('google-auth-library');
-    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID
+    // Verify the access token by fetching user info from Google
+    const response = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${token}` },
     });
 
-    const { name, email, sub: googleId } = ticket.getPayload();
+    const { sub: googleId, email, name, picture } = response.data;
 
-    let user = await User.findOne({ $or: [{ googleId }, { email }] });
+    if (!email) {
+       res.status(400).json({ message: 'Google account does not have an email' });
+       return;
+    }
+
+    let user = await User.findOne({ email });
 
     if (user) {
-      // If user exists but doesn't have googleId (linked via email), update it
+      // If user exists but doesn't have googleId, link it
       if (!user.googleId) {
         user.googleId = googleId;
         await user.save();
       }
     } else {
       // Create new user
-      // Generate a random password for Google users (they won't use it)
-      const randomPassword = Math.random().toString(36).slice(-8) + 'A1!';
-
+      // Generate a unique username if needed
+      let username = name.replace(/\s+/g, '').toLowerCase() + Math.floor(Math.random() * 1000);
+      
       // Ensure username is unique
-      let username = name.replace(/\s+/g, '').toLowerCase();
-      const usernameExists = await User.findOne({ username });
-      if (usernameExists) {
-        username += Math.floor(Math.random() * 1000);
+      while (await User.findOne({ username })) {
+        username = name.replace(/\s+/g, '').toLowerCase() + Math.floor(Math.random() * 10000);
       }
 
       user = await User.create({
         username,
         email,
-        password: randomPassword,
         googleId,
-        role: 'user'
+        // password is optional now
       });
     }
 
     const jwtToken = generateToken(user._id.toString());
 
-    res.json({
-      success: true,
-      data: {
+    res.status(200).json({
+      token: jwtToken,
+      user: {
         id: user._id,
         username: user.username,
         email: user.email,
-        role: user.role,
-        token: jwtToken
-      }
+      },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Google login error:', error);
-    res.status(500).json({
-      message: 'Google login failed',
-      error: error.message
-    });
+    res.status(400).json({ message: 'Google login failed' });
   }
 };

@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
-    
+
     if (token && savedUser) {
       setUser(JSON.parse(savedUser));
     }
@@ -20,22 +20,33 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     const response = await authAPI.login(credentials);
     const { token, ...userData } = response.data.data;
-    
+
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
-    
+
     return response;
   };
 
   const register = async (userData) => {
     const response = await authAPI.register(userData);
     const { token, ...newUser } = response.data.data;
-    
+
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(newUser));
     setUser(newUser);
-    
+
+    return response;
+  };
+
+  const googleLogin = async (token) => {
+    const response = await authAPI.googleLogin(token);
+    const { token: jwtToken, user: userData } = response.data;
+
+    localStorage.setItem('token', jwtToken);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
+
     return response;
   };
 
@@ -49,6 +60,7 @@ export const AuthProvider = ({ children }) => {
     user,
     login,
     register,
+    googleLogin,
     logout,
     loading,
     isAuthenticated: !!user,
