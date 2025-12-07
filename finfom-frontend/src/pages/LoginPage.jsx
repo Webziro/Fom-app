@@ -100,7 +100,6 @@ const LoginPage = () => {
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
               onError={() => toast.error('Google Login Failed')}
-              useOneTap
             />
           </div>
         </form>

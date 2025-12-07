@@ -133,7 +133,6 @@ const RegisterPage = () => {
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
               onError={() => toast.error('Google Sign Up Failed')}
-              useOneTap
             />
           </div>
         </form>
