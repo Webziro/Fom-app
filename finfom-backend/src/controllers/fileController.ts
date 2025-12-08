@@ -5,6 +5,7 @@ import cloudinary from '../config/cloudinary';
 import { AuthRequest } from '../types';
 import { Readable } from 'stream';
 import * as crypto from 'crypto';
+import axios from 'axios';
 
 const calculateFileHash = (buffer: Buffer): string => {
   return crypto.createHash('md5').update(buffer).digest('hex');
