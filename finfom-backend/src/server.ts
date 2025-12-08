@@ -30,19 +30,6 @@ const allowedOrigins = isProduction
 // Security middleware
 app.use(helmet());
 
-// 2. Configure CORS middleware using the dynamic origins array.
-app.use(cors({
-  origin: allowedOrigins,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
-
-// Body parsing and compression
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(compression());
-
 // Security: Sanitize data, prevent XSS and HPP
 app.use(sanitizeData);
 app.use(preventXSS);

@@ -219,26 +219,22 @@ export const downloadFile = async (req: AuthRequest, res: Response) => {
     file.downloads += 1;
     await file.save();
 
-    // Stream the file from Cloudinary
-    const https = require('https');
-    const http = require('http');
-
-    const protocol = file.secureUrl.startsWith('https') ? https : http;
-
-    protocol.get(file.secureUrl, (cloudinaryResponse: any) => {
-      // Set headers from Cloudinary response
-      res.setHeader('Content-Disposition', `attachment; filename="${file.title}"`);
-      res.setHeader('Content-Type', cloudinaryResponse.headers['content-type'] || file.fileType || 'application/octet-stream');
-      res.setHeader('Content-Length', cloudinaryResponse.headers['content-length']);
-
-      // Pipe the file stream to response
-      cloudinaryResponse.pipe(res);
-    }).on('error', (err: any) => {
-      console.error('Error streaming file:', err);
-      if (!res.headersSent) {
-        res.status(500).json({ message: 'Error downloading file' });
-      }
+    // Stream the file from Cloudinary using axios for better handling
+    const response = await axios({
+      method: 'GET',
+      url: file.secureUrl,
+      responseType: 'stream',
     });
+
+    // Set headers
+    res.setHeader('Content-Disposition', `attachment; filename="${file.title}"`);
+    res.setHeader('Content-Type', response.headers['content-type'] || file.fileType || 'application/octet-stream');
+    if (response.headers['content-length']) {
+      res.setHeader('Content-Length', response.headers['content-length']);
+    }
+
+    // Pipe the file stream to response
+    response.data.pipe(res);
 
   } catch (error: any) {
     console.error('Download error:', error);
