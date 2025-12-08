@@ -1,3 +1,14 @@
+import axios from 'axios';
+
+const axiosInstance = axios.create({
+  // Use VITE_API_BASE for consistency with other environment variables
+  baseURL: import.meta.env.VITE_API_BASE || 'http://localhost:5000',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add token to requests
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
