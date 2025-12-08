@@ -81,6 +81,12 @@ const LoginPage = () => {
             required
           />
 
+          <div className="flex items-center justify-end mb-6">
+            <Link to="/forgot-password" className="text-sm font-medium text-primary-600 hover:text-primary-500">
+              Forgot your password?
+            </Link>
+          </div>
+
           <Button
             type="submit"
             loading={loading}

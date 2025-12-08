@@ -1,5 +1,5 @@
 import express from 'express';
-import { register, login, getMe, updateProfile, changePassword, googleLogin } from '../controllers/authController';
+import { register, login, getMe, updateProfile, changePassword, googleLogin, forgotPassword, resetPassword } from '../controllers/authController';
 import { protect } from '../middleware/auth';
 import { authLimiter } from '../middleware/rateLimiter';
 import { body } from 'express-validator';
@@ -18,6 +18,8 @@ router.post('/login', authLimiter, [
 ], login);
 
 router.post('/google', googleLogin);
+router.post('/forgot-password', forgotPassword);
+router.put('/reset-password/:resettoken', resetPassword);
 
 // Protected routes
 router.get('/me', protect, getMe);

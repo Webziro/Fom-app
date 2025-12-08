@@ -8,6 +8,8 @@ import TailwindSafelist from './lib/tailwind-safelist';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import DashboardPage from './pages/DashboardPage';
 import FilesPage from './pages/FilesPage';
 import GroupsPage from './pages/GroupsPage';
@@ -21,13 +23,15 @@ function App() {
       <AuthProvider>
         <TailwindSafelist />
         <BrowserRouter>
-      
+
 
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-            
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password/:resettoken" element={<ResetPasswordPage />} />
+
             <Route path="/dashboard" element={
               <PrivateRoute><DashboardPage /></PrivateRoute>
             } />
@@ -40,7 +44,7 @@ function App() {
             <Route path="/profile" element={
               <PrivateRoute><ProfilePage /></PrivateRoute>
             } />
-            
+
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
           <Toaster position="top-right" />

@@ -4,6 +4,8 @@ import User from '../models/User';
 import { generateToken } from '../config/jwt';
 import { AuthRequest } from '../types';
 import axios from 'axios';
+import crypto from 'crypto';
+import sendEmail from '../utils/sendEmail';
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -182,22 +184,85 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
   }
 };
 
-//impliment forgot password here now
 export const forgotPassword = async (req: Request, res: Response) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
     const { email } = req.body;
 
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: 'User with this email does not exist' });
     }
-    //Generate a password reset token and send email logic goes here
 
-    res.json({ success: true, message: 'Password reset link sent to email if it exists in our system' });
+    // Get reset token
+    const resetToken = user.getResetPasswordToken();
+
+    await user.save({ validateBeforeSave: false });
+
+    // Create reset url
+    const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+
+    const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please make a PUT request to: \n\n ${resetUrl}`;
+
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: 'Password Reset Token',
+        message,
+      });
+
+      res.status(200).json({ success: true, data: 'Email sent' });
+    } catch (err) {
+      console.error(err);
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpire = undefined;
+
+      await user.save({ validateBeforeSave: false });
+
+      return res.status(500).json({ message: 'Email could not be sent' });
+    }
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    // Get hashed token
+    const resetPasswordToken = crypto
+      .createHash('sha256')
+      .update(req.params.resettoken)
+      .digest('hex');
+
+    const user = await User.findOne({
+      resetPasswordToken,
+      resetPasswordExpire: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid token' });
+    }
+
+    // Set new password
+    user.password = req.body.password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+
+    await user.save();
+
+    const token = generateToken(user._id.toString());
+
+    res.status(200).json({
+      success: true,
+      data: {
+        token,
+        user: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+        }
+      }
+    });
   } catch (error: any) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -215,8 +280,8 @@ export const googleLogin = async (req: Request, res: Response) => {
     const { sub: googleId, email, name, picture } = response.data;
 
     if (!email) {
-       res.status(400).json({ message: 'Google account does not have an email' });
-       return;
+      res.status(400).json({ message: 'Google account does not have an email' });
+      return;
     }
 
     let user = await User.findOne({ email });
@@ -231,7 +296,7 @@ export const googleLogin = async (req: Request, res: Response) => {
       // Create new user
       // Generate a unique username if needed
       let username = name.replace(/\s+/g, '').toLowerCase() + Math.floor(Math.random() * 1000);
-      
+
       // Ensure username is unique
       while (await User.findOne({ username })) {
         username = name.replace(/\s+/g, '').toLowerCase() + Math.floor(Math.random() * 10000);
@@ -253,6 +318,7 @@ export const googleLogin = async (req: Request, res: Response) => {
         id: user._id,
         username: user.username,
         email: user.email,
+        role: user.role,
       },
     });
   } catch (error) {
