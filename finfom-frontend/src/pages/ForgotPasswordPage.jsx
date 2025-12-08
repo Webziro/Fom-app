@@ -20,7 +20,9 @@ const ForgotPasswordPage = () => {
             setEmailSent(true);
             toast.success('Email sent successfully!');
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to send email');
+            console.error('Forgot Password Error:', error);
+            const errorMessage = error.response?.data?.message || error.message || 'Failed to send email';
+            toast.error(`Error: ${errorMessage}`);
         } finally {
             setLoading(false);
         }

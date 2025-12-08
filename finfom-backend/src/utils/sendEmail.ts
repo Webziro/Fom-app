@@ -14,13 +14,18 @@ const sendEmail = async (options: EmailOptions) => {
         pass: process.env.SMTP_PASSWORD ? '***' : 'MISSING',
     });
 
+    const port = Number(process.env.SMTP_PORT);
+    const secure = port === 465; // true for 465, false for other ports
+    // Google App Passwords often have spaces (e.g. "abcd efgh ijkl mnop"), but must be sent without them.
+    const userPassword = process.env.SMTP_PASSWORD ? process.env.SMTP_PASSWORD.replace(/\s+/g, '') : '';
+
     const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT),
-        secure: false, // true for 465, false for other ports
+        port: port,
+        secure: secure,
         auth: {
             user: process.env.SMTP_EMAIL,
-            pass: process.env.SMTP_PASSWORD,
+            pass: userPassword,
         },
         tls: {
             rejectUnauthorized: false
