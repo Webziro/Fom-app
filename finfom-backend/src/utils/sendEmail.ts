@@ -7,13 +7,24 @@ interface EmailOptions {
 }
 
 const sendEmail = async (options: EmailOptions) => {
+    console.log('SMTP Config:', {
+        host: process.env.SMTP_HOST,
+        port: process.env.SMTP_PORT,
+        user: process.env.SMTP_EMAIL ? '***' : 'MISSING',
+        pass: process.env.SMTP_PASSWORD ? '***' : 'MISSING',
+    });
+
     const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: Number(process.env.SMTP_PORT),
+        secure: false, // true for 465, false for other ports
         auth: {
             user: process.env.SMTP_EMAIL,
             pass: process.env.SMTP_PASSWORD,
         },
+        tls: {
+            rejectUnauthorized: false
+        }
     });
 
     const message = {
@@ -23,9 +34,13 @@ const sendEmail = async (options: EmailOptions) => {
         text: options.message,
     };
 
-    const info = await transporter.sendMail(message);
-
-    console.log('Message sent: %s', info.messageId);
+    try {
+        const info = await transporter.sendMail(message);
+        console.log('Message sent: %s', info.messageId);
+    } catch (error) {
+        console.error('Error sending email:', error);
+        throw error;
+    }
 };
 
 export default sendEmail;
