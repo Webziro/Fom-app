@@ -220,10 +220,24 @@ export const downloadFile = async (req: AuthRequest, res: Response) => {
     file.downloads += 1;
     await file.save();
 
+    // Determine resource_type from secureUrl
+    let resourceType = 'image';
+    if (file.secureUrl.includes('/video/')) resourceType = 'video';
+    if (file.secureUrl.includes('/raw/')) resourceType = 'raw';
+
+    // Generate a signed URL to bypass potential ACL/Security restrictions
+    const signedUrl = cloudinary.url(file.cloudinaryId, {
+      resource_type: resourceType,
+      secure: true,
+      sign_url: true,
+    });
+
+    console.log('Generated Signed URL:', signedUrl);
+
     // Stream the file from Cloudinary using axios for better handling
     const response = await axios({
       method: 'GET',
-      url: file.secureUrl,
+      url: signedUrl,
       responseType: 'stream',
     });
 
@@ -238,7 +252,12 @@ export const downloadFile = async (req: AuthRequest, res: Response) => {
     response.data.pipe(res);
 
   } catch (error: any) {
-    console.error('Download error:', error);
+    console.error('Download error details:', {
+      message: error.message,
+      stack: error.stack,
+      response: error.response?.data,
+      status: error.response?.status
+    });
     if (!res.headersSent) {
       res.status(500).json({ message: 'Server error', error: error.message });
     }
