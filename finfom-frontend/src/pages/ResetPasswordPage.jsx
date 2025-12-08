@@ -63,7 +63,12 @@ const ResetPasswordPage = () => {
                         required
                     />
 
-                    <Button type="submit" loading={loading} className="w-full">
+                    <Button
+                        type="submit"
+                        loading={loading}
+                        className="w-full"
+                        disabled={!password || password.length < 6 || password !== confirmPassword}
+                    >
                         Reset Password
                     </Button>
                 </form>

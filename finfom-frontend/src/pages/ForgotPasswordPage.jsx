@@ -52,7 +52,12 @@ const ForgotPasswordPage = () => {
                             required
                         />
 
-                        <Button type="submit" loading={loading} className="w-full">
+                        <Button
+                            type="submit"
+                            loading={loading}
+                            className="w-full"
+                            disabled={!email.match(/^\S+@\S+\.\S+$/)}
+                        >
                             Send Reset Link
                         </Button>
                     </form>
