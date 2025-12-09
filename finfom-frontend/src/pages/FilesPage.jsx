@@ -1,3 +1,5 @@
+import ShareModal from '../components/files/ShareModal';  // New
+import { Share2 } from 'lucide-react';  // Add to your existing Lucide imports
 import { useState, useContext, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { filesAPI } from '../api/files';
@@ -57,6 +59,9 @@ const FilesPage = () => {
   });
 
   const files = data?.data?.data || [];
+
+  // New state for Share Modal
+  const [shareFile, setShareFile] = useState(null);  // New
 
   const handleDownload = async (fileId) => {
     try {
@@ -165,18 +170,47 @@ const FilesPage = () => {
                       >
                         <MoreVertical className="w-5 h-5 text-gray-400" />
                       </button>
+
                       {isMenuOpen && (
                         <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-10">
+                          {/* New Share Button - Always show, but only functional for owners */}
                           <button
-                            onClick={() => handleDownload(file._id)}
-                            className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left rounded-t-lg"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (file.visibility === 'public' || isOwner) {
+                                  setShareFile(file);
+                                } else {
+                                  toast.error('Only the owner can share private files');
+                                }
+                                setOpenMenuId(null);
+                              }}
+                              className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left rounded-t-lg"
+                              disabled={file.visibility !== 'public' && !isOwner}
+                              style={{ opacity: (file.visibility !== 'public' && !isOwner) ? 0.5 : 1 }}
+                            >
+                              <Share2 className="w-4 h-4" />
+                              Share
+                            </button>
+                          
+                          {/* Existing Download - Add e.stopPropagation */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownload(file._id);
+                            }}
+                            className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left border-t"
                           >
                             <Download className="w-4 h-4" />
                             Download
                           </button>
+                          
+                          {/* Existing Delete - Keep as-is, but add e.stopPropagation */}
                           <button
-                            onClick={() => handleDelete(file._id)}
-                            className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left text-red-600 rounded-b-lg"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(file._id);
+                            }}
+                            className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left text-red-600 rounded-b-lg border-t"
                             disabled={!isOwner}
                             style={{ opacity: isOwner ? 1 : 0.5, cursor: isOwner ? 'pointer' : 'not-allowed' }}
                           >
@@ -185,6 +219,7 @@ const FilesPage = () => {
                           </button>
                         </div>
                       )}
+
                     </div>
                   </div>
 
@@ -241,6 +276,15 @@ const FilesPage = () => {
           onDownload={handleDownload}
         />
       )}
+
+      {/* New Share Modal */}
+      {shareFile && (
+        <ShareModal
+          file={shareFile}
+          onClose={() => setShareFile(null)}
+        />
+      )}
+
     </Layout>
   );
 };

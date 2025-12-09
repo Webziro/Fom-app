@@ -14,6 +14,7 @@ import DashboardPage from './pages/DashboardPage';
 import FilesPage from './pages/FilesPage';
 import GroupsPage from './pages/GroupsPage';
 import ProfilePage from './pages/ProfilePage';
+import PublicFilePage from './pages/PublicFilePage';
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,8 @@ function App() {
             <Route path="/profile" element={
               <PrivateRoute><ProfilePage /></PrivateRoute>
             } />
+
+            <Route path="/public/:id" element={<PublicFilePage />} />
 
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
