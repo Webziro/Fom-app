@@ -62,7 +62,11 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 
     // Upload to Cloudinary using stream
     const uploadStream = cloudinary.uploader.upload_stream(
-      { folder: 'finfom-uploads', resource_type: 'auto' },
+      
+      { 
+        folder: 'finfom-uploads', 
+        resource_type: mimetype.startsWith('image/') ? 'image' : 'raw'  // ✅ Explicit type
+      },
       async (error, result) => {
         if (error || !result) {
           console.error('Cloudinary upload failed:', error);
@@ -202,64 +206,67 @@ export const getFile = async (req: AuthRequest, res: Response) => {
   }
 };
 
+//Download file controller with fixed Cloudinary URL signing
+
 export const downloadFile = async (req: AuthRequest, res: Response) => {
   try {
     const file = await File.findById(req.params.id);
-    if (!file) {
-      return res.status(404).json({ message: 'File not found' });
-    }
+    if (!file) return res.status(404).json({ message: 'File not found' });
 
-    // Check permissions
+    // Permission check
     if (file.visibility === 'private') {
       if (!req.user || file.uploaderId.toString() !== req.user._id.toString()) {
         return res.status(403).json({ message: 'Access denied' });
       }
     }
+    // Add password check here if needed for public PDFs
 
-    // Increment download count
     file.downloads += 1;
     await file.save();
 
-    // Determine resource_type from secureUrl
-    let resourceType = 'image';
-    if (file.secureUrl.includes('/video/')) resourceType = 'video';
-    if (file.secureUrl.includes('/raw/')) resourceType = 'raw';
+    // Fixed unsigned delivery
+    let downloadUrl = file.secureUrl;
 
-    // Generate a signed URL to bypass potential ACL/Security restrictions
-    const signedUrl = cloudinary.url(file.cloudinaryId, {
-      resource_type: resourceType,
-      secure: true,
-      sign_url: true,
-    });
-
-    console.log('Generated Signed URL:', signedUrl);
-
-    // Stream the file from Cloudinary using axios for better handling
-    const response = await axios({
-      method: 'GET',
-      url: signedUrl,
-      responseType: 'stream',
-    });
-
-    // Set headers
-    res.setHeader('Content-Disposition', `attachment; filename="${file.title}"`);
-    res.setHeader('Content-Type', response.headers['content-type'] || file.fileType || 'application/octet-stream');
-    if (response.headers['content-length']) {
-      res.setHeader('Content-Length', response.headers['content-length']);
+    // Ensure version is present
+    if (!downloadUrl.includes('/v')) {
+      downloadUrl = downloadUrl.replace('/upload/', '/upload/v1/');
     }
 
-    // Pipe the file stream to response
-    response.data.pipe(res);
+    // Set correct resource type path
+    const isImage = file.fileType.startsWith('image/');
+    const resourcePath = isImage ? 'image/upload' : 'raw/upload';
+    downloadUrl = downloadUrl.replace(/(image|raw|video)\/upload/, resourcePath);
 
+    // Force download
+    downloadUrl = downloadUrl.replace('/upload/', '/upload/fl_attachment/');
+
+    // console.log('Corrected URL →', downloadUrl);
+
+    const response = await axios({
+      url: downloadUrl,
+      method: 'GET',
+      responseType: 'stream',
+      timeout: 60000,
+    });
+
+    res.setHeader('Content-Type', file.fileType || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.title)}"`);
+
+    // Stream error handling
+    response.data.on('error', (err) => {
+      console.error('Stream error:', err);
+      if (!res.headersSent) res.status(500).json({ message: 'Stream failed' });
+    });
+
+    response.data.pipe(res);
   } catch (error: any) {
-    console.error('Download error details:', {
+    console.error('Download failed:', {
       message: error.message,
-      stack: error.stack,
-      response: error.response?.data,
-      status: error.response?.status
+      status: error.response?.status,
+      url: error.config?.url,
     });
     if (!res.headersSent) {
-      res.status(500).json({ message: 'Server error', error: error.message });
+      res.status(500).json({ message: 'Download failed' });
     }
   }
 };
