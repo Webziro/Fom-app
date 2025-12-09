@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { filesAPI } from '../../api/files';
@@ -6,10 +7,6 @@ import { QRCodeCanvas } from 'qrcode.react';
 import { X, Copy, Check, Globe, Lock, Share2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import Button from '../common/Button';
 
-//Added for expiration feature
-const [expiration, setExpiration] = useState('never'); // 'never' | '1day' | '7days' | '30days' | 'custom'
-const [customDate, setCustomDate] = useState('');
-
 const ShareModal = ({ file, onClose }) => {
   const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
@@ -17,6 +14,10 @@ const ShareModal = ({ file, onClose }) => {
   const [password, setPassword] = useState('');
   const [mode, setMode] = useState(file.visibility === 'public' ? 'public' : file.visibility === 'password' ? 'password' : 'private');
   const [isUpdating, setIsUpdating] = useState(false);
+
+ //Added for expiration feature
+const [expiration, setExpiration] = useState('never'); // 'never' | '1day' | '7days' | '30days' | 'custom'
+const [customDate, setCustomDate] = useState('');
 
   const shareUrl = `${window.location.origin}/public/${file._id}`;
 

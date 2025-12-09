@@ -126,6 +126,10 @@ if (error?.response?.status === 410 || fileData?.data?.message === 'This link ha
             </div>
           </div>
 
+        <p className="text-xs text-gray-500 mt-4">
+            The owner will be notified when this file is downloaded.
+        </p>
+
           <Button onClick={handleDownload} size="lg" className="flex items-center gap-3 mx-auto mb-4">
             <Download className="w-5 h-5" />
             Download {formatBytes(file.size)}

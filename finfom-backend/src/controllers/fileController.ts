@@ -6,6 +6,8 @@ import { AuthRequest } from '../types';
 import { Readable } from 'stream';
 import * as crypto from 'crypto';
 import axios from 'axios';
+import { sendDownloadNotification } from '../utils/sendEmail';
+import User from '../models/User';  
 
 const calculateFileHash = (buffer: Buffer): string => {
   return crypto.createHash('md5').update(buffer).digest('hex');
@@ -224,64 +226,66 @@ export const downloadFile = async (req: AuthRequest, res: Response) => {
     const file = await File.findById(req.params.id);
     if (!file) return res.status(404).json({ message: 'File not found' });
 
-    // Permission check
+    // Permission checks (your existing code)
     if (file.visibility === 'private') {
       if (!req.user || file.uploaderId.toString() !== req.user._id.toString()) {
         return res.status(403).json({ message: 'Access denied' });
       }
     }
-    // Add password check here if needed for public PDFs
 
+    // Increment downloads
     file.downloads += 1;
     await file.save();
 
-    // Fixed unsigned delivery
-    let downloadUrl = file.secureUrl;
-
-    // Ensure version is present
-    if (!downloadUrl.includes('/v')) {
-      downloadUrl = downloadUrl.replace('/upload/', '/upload/v1/');
+    // Build correct Cloudinary URL (force raw + attachment)
+    let publicId = file.cloudinaryId;
+    if (!publicId.includes('/v')) {
+      publicId = `v1/${publicId}`;
     }
 
-    // Set correct resource type path
-    const isImage = file.fileType.startsWith('image/');
-    const resourcePath = isImage ? 'image/upload' : 'raw/upload';
-    downloadUrl = downloadUrl.replace(/(image|raw|video)\/upload/, resourcePath);
+    let downloadUrl = `https://res.cloudinary.com/dtr6g5tbm/raw/upload/fl_attachment/${publicId}`;
 
-    // Force download
-    downloadUrl = downloadUrl.replace('/upload/', '/upload/fl_attachment/');
+    // Add filename if possible
+    const ext = file.title.split('.').pop() || 'pdf';
+    downloadUrl += `.${ext}`;
 
-    // console.log('Corrected URL →', downloadUrl);
+    console.log('Attempting download from:', downloadUrl);
 
     const response = await axios({
-      url: downloadUrl,
       method: 'GET',
+      url: downloadUrl,
       responseType: 'stream',
-      timeout: 60000,
+      timeout: 30000,
+      validateStatus: (status) => status < 500, // Don't throw on 404
     });
 
+    // Set headers
     res.setHeader('Content-Type', file.fileType || 'application/octet-stream');
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.title)}"`);
 
-    // Stream error handling
+    response.data.pipe(res);
+
     response.data.on('error', (err) => {
       console.error('Stream error:', err);
       if (!res.headersSent) res.status(500).json({ message: 'Stream failed' });
     });
 
-    response.data.pipe(res);
   } catch (error: any) {
     console.error('Download failed:', {
       message: error.message,
       status: error.response?.status,
       url: error.config?.url,
     });
+
     if (!res.headersSent) {
-      res.status(500).json({ message: 'Download failed' });
+      if (error.response?.status === 404) {
+        res.status(404).json({ message: 'File not available (Cloudinary 404)' });
+      } else {
+        res.status(500).json({ message: 'Download failed', details: error.message });
+      }
     }
   }
 };
-
 export const updateFile = async (req: AuthRequest, res: Response) => {
   try {
     const file = await File.findById(req.params.id);
