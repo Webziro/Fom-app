@@ -16,6 +16,7 @@ export interface IFile extends Document {
   downloads: number;
   createdAt: Date;
   updatedAt: Date;
+  expiresAt?: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -49,6 +50,10 @@ const FileSchema = new Schema<IFile>({
   url: {
     type: String,
     required: true
+  },
+  expiresAt: {
+    type: Date,
+    default: null,
   },
   secureUrl: {
     type: String,

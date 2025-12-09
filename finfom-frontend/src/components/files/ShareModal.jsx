@@ -6,6 +6,10 @@ import { QRCodeCanvas } from 'qrcode.react';
 import { X, Copy, Check, Globe, Lock, Share2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import Button from '../common/Button';
 
+//Added for expiration feature
+const [expiration, setExpiration] = useState('never'); // 'never' | '1day' | '7days' | '30days' | 'custom'
+const [customDate, setCustomDate] = useState('');
+
 const ShareModal = ({ file, onClose }) => {
   const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
@@ -60,6 +64,25 @@ const ShareModal = ({ file, onClose }) => {
   };
 
   const isShareable = mode === 'public' || mode === 'password';
+
+    // Handle expiration date
+    let expiresAt = null;
+    if (expiration === '1day') {
+    expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    } else if (expiration === '7days') {
+    expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    } else if (expiration === '30days') {
+    expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    } else if (expiration === 'custom' && customDate) {
+    expiresAt = new Date(customDate);
+    }
+
+    const data = {
+    visibility: mode === 'private' ? 'private' : mode === 'public' ? 'public' : 'password',
+    ...(mode === 'password' && password && { password }),
+    ...(expiration !== 'never' && { expiresAt }),
+    ...(expiration === 'never' && { expiresAt: null }),
+    };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={handleBackdropClick}>
@@ -142,6 +165,48 @@ const ShareModal = ({ file, onClose }) => {
         >
           {isUpdating ? 'Saving...' : 'Save Settings'}
         </Button>
+
+
+        {/* Link Expiration */}
+        {isShareable && (
+        <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+            <p className="font-medium text-gray-900 mb-3">Link Expiration</p>
+            <div className="grid grid-cols-2 gap-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="exp" checked={expiration === 'never'} onChange={() => setExpiration('never')} className="text-primary-600" />
+                <span className="text-sm">Never expires</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="exp" checked={expiration === '1day'} onChange={() => setExpiration('1day')} className="text-primary-600" />
+                <span className="text-sm">1 day</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="exp" checked={expiration === '7days'} onChange={() => setExpiration('7days')} className="text-primary-600" />
+                <span className="text-sm">7 days</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="exp" checked={expiration === '30days'} onChange={() => setExpiration('30days')} className="text-primary-600" />
+                <span className="text-sm">30 days</span>
+            </label>
+            </div>
+            {/* Custom date */}
+            <div className="mt-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="exp" checked={expiration === 'custom'} onChange={() => setExpiration('custom')} className="text-primary-600" />
+                <span className="text-sm">Custom date</span>
+            </label>
+            {expiration === 'custom' && (
+                <input
+                type="datetime-local"
+                value={customDate}
+                onChange={(e) => setCustomDate(e.target.value)}
+                min={new Date().toISOString().slice(0, 16)}
+                className="mt-2 w-full px-3 py-2 border rounded-lg"
+                />
+            )}
+            </div>
+        </div>
+        )}
 
         {/* Share Link (Only if shareable) */}
         {isShareable && (

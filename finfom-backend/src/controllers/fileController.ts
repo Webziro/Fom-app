@@ -199,8 +199,17 @@ export const getFile = async (req: AuthRequest, res: Response) => {
       }
     }
 
+    // Check if link is expired (for public/password files)
+    if (file.expiresAt && new Date() > file.expiresAt) {
+      // Allow owner to still access
+      if (req.user && file.uploaderId.toString() === req.user._id.toString()) {
+        // Owner sees it normally
+      } else {
+        return res.status(410).json({ message: 'This link has expired' });
+      }
+    }
+
     // 3. Public files: ALLOW EVERYONE (authenticated or not)
-    // → No check needed! Just proceed
 
     res.json({ success: true, data: file });
   } catch (error: any) {
@@ -300,12 +309,17 @@ export const updateFile = async (req: AuthRequest, res: Response) => {
       file.password = password;
     }
 
+    // Update fields if provided  
+    if (req.body.expiresAt === null || req.body.expiresAt) {
+    file.expiresAt = req.body.expiresAt ? new Date(req.body.expiresAt) : null;
+    }
+
     await file.save();
     const updatedFile = await File.findById(file._id).populate('groupId', 'title');
     res.json({ success: true, data: updatedFile });
-  } catch (error: any) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
+    } catch (error: any) {
+      res.status(500).json({ message: 'Server error', error: error.message });
+    }
 };
 
 export const deleteFile = async (req: AuthRequest, res: Response) => {

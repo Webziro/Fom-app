@@ -70,6 +70,22 @@ const PublicFilePage = () => {
   );
 }
 
+// Check for link expiration
+if (error?.response?.status === 410 || fileData?.data?.message === 'This link has expired') {
+  return (
+    <PublicLayout>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Link Expired</h2>
+          <p className="text-gray-600 mb-4">This share link is no longer valid.</p>
+          <a href="/" className="text-primary-600 hover:underline">← Back to Finfom</a>
+        </div>
+      </div>
+    </PublicLayout>
+  );
+}
+
   const handleDownload = async () => {
     try {
       const response = await filesAPI.downloadFile(id);
