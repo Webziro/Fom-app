@@ -6,7 +6,7 @@ import { Download, FileText, User, Calendar, DownloadCloud } from 'lucide-react'
 import Button from '../components/common/Button';
 import PublicLayout from '../components/layout/PublicLayout';
 
-
+// Add the function directly here (copy-paste from FilesPage.jsx)
 const formatBytes = (bytes) => {
   if (bytes === 0) return '0 Bytes';
   const k = 1024;
