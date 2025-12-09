@@ -237,6 +237,25 @@ export const downloadFile = async (req: AuthRequest, res: Response) => {
     file.downloads += 1;
     await file.save();
 
+    // === SEND DOWNLOAD NOTIFICATION ===
+  if (!req.user || file.uploaderId.toString() !== req.user._id.toString()) {
+    try {
+      const uploader = await User.findById(file.uploaderId).select('email username');
+      if (uploader?.email) {
+        await sendDownloadNotification({
+          to: uploader.email,
+          fileTitle: file.title,
+          downloaderIp: req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unknown',
+          downloaderName: req.user?.username || 'Guest',
+          downloadTime: new Date().toLocaleString(),
+        });
+      }
+    } catch (notifyErr) {
+      console.error('Failed to send download notification:', notifyErr);
+    // Don't break download if email fails
+  }
+}
+
     // Build correct Cloudinary URL (force raw + attachment)
     let publicId = file.cloudinaryId;
     if (!publicId.includes('/v')) {

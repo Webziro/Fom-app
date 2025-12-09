@@ -48,4 +48,5 @@ const sendEmail = async (options: EmailOptions) => {
     }
 };
 
+
 export default sendEmail;
