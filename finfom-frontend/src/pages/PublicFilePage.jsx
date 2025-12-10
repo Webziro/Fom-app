@@ -1,67 +1,130 @@
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { filesAPI } from '../api/files';
-import { Download, FileText, User, Calendar, DownloadCloud, AlertCircle } from 'lucide-react';
+import { Download, FileText, User, Calendar, DownloadCloud, AlertCircle, Lock } from 'lucide-react';
 import PublicLayout from '../components/layout/PublicLayout';
 import Button from '../components/common/Button';
 import { Document, Page, pdfjs } from 'react-pdf';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-// Set worker src (required for react-pdf)
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
 const PublicFilePage = () => {
   const { id } = useParams();
   const [numPages, setNumPages] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
+  const [password, setPassword] = useState('');
+  const [submittedPassword, setSubmittedPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data: fileData, isLoading, error } = useQuery({
-    queryKey: ['publicFile', id],
-    queryFn: () => filesAPI.getFile(id),
+  const { data: fileData, isLoading, error, isFetching } = useQuery({
+    queryKey: ['publicFile', id, submittedPassword],
+    queryFn: () => filesAPI.getPublicFile(id, submittedPassword),
+    retry: false,
   });
 
   const file = fileData?.data;
 
-  const onDocumentLoadSuccess = ({ numPages }) => {
-    setNumPages(numPages);
-  };
+  // Reset isSubmitting when the query settles (success or error)
+  useEffect(() => {
+    if (!isFetching && isSubmitting) {
+      setIsSubmitting(false);
+    }
+  }, [isFetching, isSubmitting]);
+
+  const onDocumentLoadSuccess = ({ numPages }) => setNumPages(numPages);
 
   const handleDownload = async () => {
     try {
-      const response = await filesAPI.downloadFile(id);
-      const blob = new Blob([response.data]);
-      const url = window.URL.createObjectURL(blob);
+      const { data } = await filesAPI.downloadPublicFile(id);
+      const url = URL.createObjectURL(new Blob([data]));
       const link = document.createElement('a');
       link.href = url;
       link.download = file.title || 'file';
-      document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      URL.revokeObjectURL(url);
     } catch (err) {
       alert('Download failed');
     }
   };
 
-  if (isLoading) {
+  const handlePasswordSubmit = (e) => {
+    e.preventDefault();
+    if (!password.trim()) {
+      setPasswordError('Please enter a password');
+      return;
+    }
+    setPasswordError('');
+    setIsSubmitting(true);
+    setSubmittedPassword(password); // Triggers refetch
+  };
+
+  // Show loading during initial load or after submit
+  if (isLoading || isFetching) {
     return (
       <PublicLayout>
         <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+            <p className="text-gray-600">Unlocking file...</p>
+          </div>
         </div>
       </PublicLayout>
     );
   }
 
-  if (error || !file || file.visibility !== 'public') {
+  // Password required or incorrect
+  if (error?.response?.status === 401) {
+    const isWrongPassword = error.response.data.message?.includes('Incorrect') ||
+                            error.response.data.message?.includes('password');
+
+    return (
+      <PublicLayout>
+        <div className="max-w-md mx-auto mt-20">
+          <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+            <Lock className="w-16 h-16 text-yellow-600 mx-auto mb-6" />
+            <h2 className="text-2xl font-bold mb-4">
+              {isWrongPassword ? 'Incorrect Password' : 'Password Required'}
+            </h2>
+            <p className="text-gray-600 mb-8">
+              {isWrongPassword
+                ? 'The password you entered is incorrect. Please try again.'
+                : 'This file is protected with a password.'}
+            </p>
+            <form onSubmit={handlePasswordSubmit}>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setPasswordError('');
+                }}
+                placeholder="Enter password"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                autoFocus
+                required
+              />
+              {passwordError && <p className="text-red-600 mb-4">{passwordError}</p>}
+              <Button type="submit" disabled={isSubmitting} className="w-full">
+                {isSubmitting ? 'Unlocking...' : 'Unlock File'}
+              </Button>
+            </form>
+          </div>
+        </div>
+      </PublicLayout>
+    );
+  }
+
+  // Other errors (not found, private)
+  if (!file) {
     return (
       <PublicLayout>
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Access Denied</h2>
-            <p className="text-gray-600 mb-4">This file is not public or does not exist.</p>
-            <a href="/" className="text-primary-600 hover:underline">← Back to Finfom</a>
+            <h2 className="text-xl font-bold mb-2">Access Denied</h2>
+            <p className="text-gray-600">This file is not public or does not exist.</p>
           </div>
         </div>
       </PublicLayout>
@@ -74,7 +137,6 @@ const PublicFilePage = () => {
     <PublicLayout>
       <div className="max-w-5xl mx-auto p-6">
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          {/* File Info Header */}
           <div className="p-8 text-center border-b">
             <FileText className="w-20 h-20 text-primary-600 mx-auto mb-6" />
             <h1 className="text-3xl font-bold text-gray-900 mb-4">{file.title}</h1>
@@ -101,12 +163,11 @@ const PublicFilePage = () => {
             </Button>
           </div>
 
-          {/* PDF Preview */}
           {isPDF ? (
             <div className="bg-gray-100 p-8">
               <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-md overflow-hidden">
                 <div className="bg-gray-800 text-white p-4 flex justify-between items-center">
-                  <p className="text-sm">Page {pageNumber} of {numPages}</p>
+                  <p className="text-sm">Page {pageNumber} of {numPages || '...'}</p>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setPageNumber(Math.max(1, pageNumber - 1))}
@@ -116,8 +177,8 @@ const PublicFilePage = () => {
                       Previous
                     </button>
                     <button
-                      onClick={() => setPageNumber(Math.min(numPages, pageNumber + 1))}
-                      disabled={pageNumber >= numPages}
+                      onClick={() => setPageNumber(Math.min(numPages || 1, pageNumber + 1))}
+                      disabled={pageNumber >= (numPages || 1)}
                       className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50"
                     >
                       Next
@@ -129,7 +190,6 @@ const PublicFilePage = () => {
                     file={file.secureUrl}
                     onLoadSuccess={onDocumentLoadSuccess}
                     loading={<div className="text-center py-20">Loading PDF...</div>}
-                    error={<div className="text-center py-20 text-red-500">Failed to load PDF</div>}
                   >
                     <Page pageNumber={pageNumber} width={800} />
                   </Document>

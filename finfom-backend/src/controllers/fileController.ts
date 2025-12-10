@@ -175,32 +175,44 @@ export const getFile = async (req: AuthRequest, res: Response) => {
       .populate('uploaderId', 'username email')
       .populate('groupId', 'title');
 
-    if (!file) {
-      return res.status(404).json({ message: 'File not found' });
-    }
+// FIXED PERMISSION LOGIC
+if (!file) {
+  return res.status(404).json({ message: 'File not found' });
+}
 
-    // === FIXED PERMISSION LOGIC ===
-    // 1. Private files: Only owner
-    if (file.visibility === 'private') {
-      if (!req.user || file.uploaderId._id.toString() !== req.user._id.toString()) {
-        return res.status(403).json({ message: 'Access denied' });
-      }
-    }
+// Public files: Allow everyone (authenticated or not)
+if (file.visibility === 'public') {
+  return res.json({ success: true, data: file });
+}
 
-    // 2. Password-protected: Require password if not owner
-    if (file.visibility === 'password') {
-      if (!req.user || file.uploaderId._id.toString() !== req.user._id.toString()) {
-        const { password } = req.body;
-        if (!password) {
-          return res.status(401).json({ message: 'Password required' });
-        }
+// Private files: Only owner
+if (file.visibility === 'private') {
+  if (!req.user || file.uploaderId.toString() !== req.user._id.toString()) {
+    return res.status(403).json({ message: 'Access denied' });
+  }
+  return res.json({ success: true, data: file });
+}
 
-        const fileWithPassword = await File.findById(req.params.id).select('+password');
-        if (!fileWithPassword || !(await fileWithPassword.comparePassword(password))) {
-          return res.status(401).json({ message: 'Incorrect password' });
-        }
-      }
-    }
+// Password-protected files
+if (file.visibility === 'password') {
+  // Owner bypasses password
+  if (req.user && file.uploaderId.toString() === req.user._id.toString()) {
+    return res.json({ success: true, data: file });
+  }
+
+  // Non-owner: Require password in body
+  const { password } = req.body;
+  if (!password) {
+    return res.status(401).json({ message: 'Password required' });
+  }
+
+  const isMatch = await file.comparePassword(password);
+  if (!isMatch) {
+    return res.status(401).json({ message: 'Incorrect password' });
+  }
+
+  return res.json({ success: true, data: file });
+}
 
     // Check if link is expired (for public/password files)
     if (file.expiresAt && new Date() > file.expiresAt) {

@@ -15,6 +15,7 @@ import { cache, clearCache } from '../middleware/cache';
 
 const router = express.Router();
 
+
 // Helper middleware — clears file cache after success
 const clearFilesCache = (_req: any, _res: any, next: any) => {
   clearCache('cache:/api/files*')
