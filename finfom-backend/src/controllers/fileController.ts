@@ -6,8 +6,9 @@ import { AuthRequest } from '../types';
 import { Readable } from 'stream';
 import * as crypto from 'crypto';
 import axios from 'axios';
-import { sendDownloadNotification } from '../utils/sendEmail';
 import User from '../models/User';  
+import sendEmail from '../utils/sendEmail';
+
 
 const calculateFileHash = (buffer: Buffer): string => {
   return crypto.createHash('md5').update(buffer).digest('hex');
@@ -237,22 +238,35 @@ export const downloadFile = async (req: AuthRequest, res: Response) => {
     file.downloads += 1;
     await file.save();
 
-    // === SEND DOWNLOAD NOTIFICATION ===
-  if (!req.user || file.uploaderId.toString() !== req.user._id.toString()) {
-    try {
-      const uploader = await User.findById(file.uploaderId).select('email username');
-      if (uploader?.email) {
-        await sendDownloadNotification({
-          to: uploader.email,
-          fileTitle: file.title,
-          downloaderIp: req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unknown',
-          downloaderName: req.user?.username || 'Guest',
-          downloadTime: new Date().toLocaleString(),
-        });
-      }
-    } catch (notifyErr) {
-      console.error('Failed to send download notification:', notifyErr);
-    // Don't break download if email fails
+  // === SEND DOWNLOAD NOTIFICATION ===
+if (!req.user || file.uploaderId.toString() !== req.user._id.toString()) {
+  try {
+    const uploader = await User.findById(file.uploaderId).select('email username');
+    if (uploader?.email) {
+      const subject = `Your file "${file.title}" was downloaded`;
+      const message = `
+          Someone just downloaded your file on Finfom!
+
+          File: ${file.title}
+          Time: ${new Date().toLocaleString()}
+          Downloaded by: ${req.user ? req.user.username : 'Guest (via public link)'}
+
+          View your files: ${process.env.CLIENT_URL || 'http://localhost:5173'}/files
+
+          This is an automated notification from Finfom.
+      `.trim();
+
+      await sendEmail({
+        email: uploader.email,
+        subject,
+        message,
+      });
+
+      console.log(`Download notification sent to ${uploader.email}`);
+    }
+  } catch (emailErr) {
+    console.error('Failed to send download notification:', emailErr);
+    // Don't break the download if email fails
   }
 }
 
