@@ -18,15 +18,16 @@ const PublicFilePage = () => {
   const [passwordError, setPasswordError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data: fileData, isLoading, error, isFetching } = useQuery({
+  const { data: fileData, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['publicFile', id, submittedPassword],
     queryFn: () => filesAPI.getPublicFile(id, submittedPassword),
     retry: false,
+    enabled: false, // ← DISABLE AUTO RUN
   });
 
   const file = fileData?.data;
 
-  // Reset isSubmitting when the query settles (success or error)
+  // Reset submitting when fetching ends
   useEffect(() => {
     if (!isFetching && isSubmitting) {
       setIsSubmitting(false);
@@ -57,10 +58,16 @@ const PublicFilePage = () => {
     }
     setPasswordError('');
     setIsSubmitting(true);
-    setSubmittedPassword(password); // Triggers refetch
+    setSubmittedPassword(password);
+    refetch(); // ← Manual refetch
   };
 
-  // Show loading during initial load or after submit
+  // Initial load (try without password)
+  useEffect(() => {
+    refetch(); // Run once on mount
+  }, [id, refetch]);
+
+  // Show loading
   if (isLoading || isFetching) {
     return (
       <PublicLayout>
@@ -74,7 +81,7 @@ const PublicFilePage = () => {
     );
   }
 
-  // Password required or incorrect
+  // Password required or wrong
   if (error?.response?.status === 401) {
     const isWrongPassword = error.response.data.message?.includes('Incorrect') ||
                             error.response.data.message?.includes('password');
@@ -88,8 +95,8 @@ const PublicFilePage = () => {
               {isWrongPassword ? 'Incorrect Password' : 'Password Required'}
             </h2>
             <p className="text-gray-600 mb-8">
-              {isWrongPassword
-                ? 'The password you entered is incorrect. Please try again.'
+              {isWrongPassword 
+                ? 'The password you entered is incorrect. Please try again.' 
                 : 'This file is protected with a password.'}
             </p>
             <form onSubmit={handlePasswordSubmit}>
@@ -116,7 +123,7 @@ const PublicFilePage = () => {
     );
   }
 
-  // Other errors (not found, private)
+  // Other errors
   if (!file) {
     return (
       <PublicLayout>
