@@ -171,13 +171,10 @@ export const getMyFiles = async (req: AuthRequest, res: Response) => {
 
 export const getFile = async (req: AuthRequest, res: Response) => {
   try {
-    const fileId = req.params.id;
-
-    // Always select password if visibility is password (we check after finding, but to avoid two queries, select always for safety)
-    const file = await File.findById(fileId)
+    const file = await File.findById(req.params.id)
       .populate('uploaderId', 'username email')
       .populate('groupId', 'title')
-      .select('+password');  // ← ADD THIS LINE (safe, password only used when needed)
+      .select('+password');  // ← Critical for password-protected files
 
     if (!file) {
       return res.status(404).json({ message: 'File not found' });
@@ -217,6 +214,7 @@ export const getFile = async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, data: file });
   } catch (error: any) {
+    console.error('getFile error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
