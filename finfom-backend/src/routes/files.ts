@@ -25,7 +25,7 @@ const clearFilesCache = (_req: any, _res: any, next: any) => {
 
 // Public routes
 router.get('/public', cache(300), getPublicFiles);
-router.get('/:id', getFile);
+router.post('/:id/access', getFile);
 router.post('/:id/download', downloadLimiter, downloadFile);
 
 router.post('/:id/access', getFile); // For accessing password-protected files
