@@ -174,7 +174,7 @@ export const getFile = async (req: AuthRequest, res: Response) => {
     const file = await File.findById(req.params.id)
       .populate('uploaderId', 'username email')
       .populate('groupId', 'title')
-      .select('+password');  // ← Critical for password-protected files
+      .select('+password');  // ← This loads the hidden password hash
 
     if (!file) {
       return res.status(404).json({ message: 'File not found' });

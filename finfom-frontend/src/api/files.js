@@ -14,10 +14,19 @@ export const filesAPI = {
   },
 
   // Public versions (no auth token)
+  // getPublicFile: (id, password = '') => {
+  //   const body = password ? { password } : {};
+  //   return publicAxios.get(`api/files/${id}`, { data: body });
+  // },
+
   getPublicFile: (id, password = '') => {
-    const body = password ? { password } : {};
-    return publicAxios.get(`api/files/${id}`, { data: body });
-  },
+  if (password) {
+    // Use POST when password is provided
+    return publicAxios.post(`api/files/${id}/access`, { password });
+  }
+  // Initial load - GET
+  return publicAxios.get(`api/files/${id}`);
+},
 
   downloadFile: (id, password = '') => axios.post(`api/files/${id}/download`, { password }, {
     responseType: 'blob',
