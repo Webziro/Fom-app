@@ -175,63 +175,49 @@ export const getFile = async (req: AuthRequest, res: Response) => {
       .populate('uploaderId', 'username email')
       .populate('groupId', 'title');
 
-// FIXED PERMISSION LOGIC
-if (!file) {
-  return res.status(404).json({ message: 'File not found' });
-}
+    if (!file) {
+      return res.status(404).json({ message: 'File not found' });
+    }
 
-// Public files: Allow everyone (authenticated or not)
-if (file.visibility === 'public') {
-  return res.json({ success: true, data: file });
-}
+    // 1. Public files: Allow everyone immediately
+    if (file.visibility === 'public') {
+      return res.json({ success: true, data: file });
+    }
 
-// Private files: Only owner
-if (file.visibility === 'private') {
-  if (!req.user || file.uploaderId.toString() !== req.user._id.toString()) {
-    return res.status(403).json({ message: 'Access denied' });
-  }
-  return res.json({ success: true, data: file });
-}
+    // 2. Password-protected files
+    if (file.visibility === 'password') {
+      // Owner bypasses password
+      if (req.user && file.uploaderId._id.toString() === req.user._id.toString()) {
+        return res.json({ success: true, data: file });
+      }
 
-// Password-protected files
-if (file.visibility === 'password') {
-  // Owner bypasses password
-  if (req.user && file.uploaderId.toString() === req.user._id.toString()) {
-    return res.json({ success: true, data: file });
-  }
+      // Non-owner: Require password in request body
+      const { password } = req.body;
+      if (!password) {
+        return res.status(401).json({ message: 'Password required' });
+      }
 
-  // Non-owner: Require password in body
-  const { password } = req.body;
-  if (!password) {
-    return res.status(401).json({ message: 'Password required' });
-  }
+      const isMatch = await file.comparePassword(password);
+      if (!isMatch) {
+        return res.status(401).json({ message: 'Incorrect password' });
+      }
 
-  const isMatch = await file.comparePassword(password);
-  if (!isMatch) {
-    return res.status(401).json({ message: 'Incorrect password' });
-  }
+      return res.json({ success: true, data: file });
+    }
 
-  return res.json({ success: true, data: file });
-}
-
-    // Check if link is expired (for public/password files)
-    if (file.expiresAt && new Date() > file.expiresAt) {
-      // Allow owner to still access
-      if (req.user && file.uploaderId.toString() === req.user._id.toString()) {
-        // Owner sees it normally
-      } else {
-        return res.status(410).json({ message: 'This link has expired' });
+    // 3. Private files: Only owner
+    if (file.visibility === 'private') {
+      if (!req.user || file.uploaderId._id.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: 'Access denied' });
       }
     }
 
-    // 3. Public files: ALLOW EVERYONE (authenticated or not)
-
+    // Final return for owner/private (after check)
     res.json({ success: true, data: file });
   } catch (error: any) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
-
 //Download file controller with fixed Cloudinary URL signing
 
 export const downloadFile = async (req: AuthRequest, res: Response) => {
