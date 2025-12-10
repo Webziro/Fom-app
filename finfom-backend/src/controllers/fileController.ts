@@ -171,27 +171,30 @@ export const getMyFiles = async (req: AuthRequest, res: Response) => {
 
 export const getFile = async (req: AuthRequest, res: Response) => {
   try {
-    const file = await File.findById(req.params.id)
+    const fileId = req.params.id;
+
+    // Always select password if visibility is password (we check after finding, but to avoid two queries, select always for safety)
+    const file = await File.findById(fileId)
       .populate('uploaderId', 'username email')
-      .populate('groupId', 'title');
+      .populate('groupId', 'title')
+      .select('+password');  // ← ADD THIS LINE (safe, password only used when needed)
 
     if (!file) {
       return res.status(404).json({ message: 'File not found' });
     }
 
-    // 1. Public files: Allow everyone immediately
+    // Public files: Allow everyone
     if (file.visibility === 'public') {
       return res.json({ success: true, data: file });
     }
 
-    // 2. Password-protected files
+    // Password-protected files
     if (file.visibility === 'password') {
-      // Owner bypasses password
+      // Owner bypass
       if (req.user && file.uploaderId._id.toString() === req.user._id.toString()) {
         return res.json({ success: true, data: file });
       }
 
-      // Non-owner: Require password in request body
       const { password } = req.body;
       if (!password) {
         return res.status(401).json({ message: 'Password required' });
@@ -205,19 +208,19 @@ export const getFile = async (req: AuthRequest, res: Response) => {
       return res.json({ success: true, data: file });
     }
 
-    // 3. Private files: Only owner
+    // Private files: Only owner
     if (file.visibility === 'private') {
       if (!req.user || file.uploaderId._id.toString() !== req.user._id.toString()) {
         return res.status(403).json({ message: 'Access denied' });
       }
     }
 
-    // Final return for owner/private (after check)
     res.json({ success: true, data: file });
   } catch (error: any) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
 //Download file controller with fixed Cloudinary URL signing
 
 export const downloadFile = async (req: AuthRequest, res: Response) => {

@@ -22,17 +22,22 @@ const PublicFilePage = () => {
     queryKey: ['publicFile', id, submittedPassword],
     queryFn: () => filesAPI.getPublicFile(id, submittedPassword),
     retry: false,
-    enabled: false, // ← DISABLE AUTO RUN
+    enabled: false, // Disable auto-run
   });
 
   const file = fileData?.data;
 
-  // Reset submitting when fetching ends
+  // Reset isSubmitting when fetching ends
   useEffect(() => {
     if (!isFetching && isSubmitting) {
       setIsSubmitting(false);
     }
   }, [isFetching, isSubmitting]);
+
+  // Initial load
+  useEffect(() => {
+    refetch();
+  }, [id, refetch]);
 
   const onDocumentLoadSuccess = ({ numPages }) => setNumPages(numPages);
 
@@ -59,15 +64,10 @@ const PublicFilePage = () => {
     setPasswordError('');
     setIsSubmitting(true);
     setSubmittedPassword(password);
-    refetch(); // ← Manual refetch
+    refetch();
   };
 
-  // Initial load (try without password)
-  useEffect(() => {
-    refetch(); // Run once on mount
-  }, [id, refetch]);
-
-  // Show loading
+  // Loading
   if (isLoading || isFetching) {
     return (
       <PublicLayout>
@@ -81,10 +81,11 @@ const PublicFilePage = () => {
     );
   }
 
-  // Password required or wrong
-  if (error?.response?.status === 401) {
-    const isWrongPassword = error.response.data.message?.includes('Incorrect') ||
-                            error.response.data.message?.includes('password');
+  // Password required or incorrect
+  if (error?.response?.status === 401 || error?.response?.status === 403) {
+    const isWrongPassword = error.response?.data?.message?.includes('Incorrect') ||
+                            error.response?.data?.message?.includes('denied') ||
+                            error.response?.data?.message?.includes('password');
 
     return (
       <PublicLayout>
@@ -95,8 +96,8 @@ const PublicFilePage = () => {
               {isWrongPassword ? 'Incorrect Password' : 'Password Required'}
             </h2>
             <p className="text-gray-600 mb-8">
-              {isWrongPassword 
-                ? 'The password you entered is incorrect. Please try again.' 
+              {isWrongPassword
+                ? 'The password you entered is incorrect. Please try again.'
                 : 'This file is protected with a password.'}
             </p>
             <form onSubmit={handlePasswordSubmit}>
@@ -123,7 +124,7 @@ const PublicFilePage = () => {
     );
   }
 
-  // Other errors
+  // File not found or not accessible
   if (!file) {
     return (
       <PublicLayout>
@@ -138,6 +139,7 @@ const PublicFilePage = () => {
     );
   }
 
+  // File loaded successfully
   const isPDF = file.fileType === 'application/pdf';
 
   return (
