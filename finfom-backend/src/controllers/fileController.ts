@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Response } from 'express';
 import File from '../models/File';
 import Group from '../models/Group';
@@ -421,7 +422,9 @@ export const getAnalytics = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
 
-    const files = await File.find({ uploaderId: req.user._id });
+    const userId = new mongoose.Types.ObjectId(req.user._id);  // ← Cast to ObjectId
+
+    const files = await File.find({ uploaderId: userId });  // ← Use casted ID
 
     const totalDownloads = files.reduce((sum, file) => sum + (file.downloads || 0), 0);
     const totalFiles = files.length;
@@ -438,7 +441,7 @@ export const getAnalytics = async (req: AuthRequest, res: Response) => {
         createdAt: f.createdAt,
       }));
 
-    // Downloads by date (simple grouping)
+    // Downloads by date
     const downloadsMap = {};
     files.forEach(file => {
       const date = new Date(file.updatedAt).toISOString().split('T')[0];
@@ -457,7 +460,6 @@ export const getAnalytics = async (req: AuthRequest, res: Response) => {
         storageUsed,
         topFiles,
         downloadsByDate,
-        fileTypes: [], // We'll add this later if needed
       },
     });
   } catch (error: any) {
