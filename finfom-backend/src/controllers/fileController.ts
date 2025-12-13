@@ -423,9 +423,17 @@ export const getAnalytics = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
 
-    const userId = new mongoose.Types.ObjectId(req.user._id);  // ← CAST TO OBJECTID
+    // CAST user ID FIRST (before using it)
+    const userId = new mongoose.Types.ObjectId(req.user._id);
 
-    const files = await File.find({ uploaderId: userId });  // ← NOW MATCHES
+    console.log('Authenticated user ID:', req.user._id);
+    console.log('Cast user ID:', userId.toString());
+
+    const files = await File.find({ uploaderId: userId });
+    console.log('Found files count:', files.length);
+    if (files.length > 0) {
+      console.log('Sample file uploaderId:', files[0].uploaderId.toString());
+    }
 
     const totalDownloads = files.reduce((sum, file) => sum + (file.downloads || 0), 0);
     const totalFiles = files.length;
@@ -453,6 +461,18 @@ export const getAnalytics = async (req: AuthRequest, res: Response) => {
       .map(date => ({ _id: date, downloads: downloadsMap[date] }))
       .sort((a, b) => a._id.localeCompare(b._id));
 
+    // File types for pie chart
+    const fileTypesMap = {};
+    files.forEach(file => {
+      const type = file.fileType || 'unknown';
+      fileTypesMap[type] = (fileTypesMap[type] || 0) + 1;
+    });
+
+    const fileTypes = Object.keys(fileTypesMap).map(type => ({
+      _id: type,
+      count: fileTypesMap[type],
+    }));
+
     res.json({
       success: true,
       data: {
@@ -461,6 +481,7 @@ export const getAnalytics = async (req: AuthRequest, res: Response) => {
         storageUsed,
         topFiles,
         downloadsByDate,
+        fileTypes,
       },
     });
   } catch (error: any) {
@@ -468,3 +489,4 @@ export const getAnalytics = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+

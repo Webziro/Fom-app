@@ -61,5 +61,11 @@ router.delete(
 // Analytics route 
 router.get('/analytics', protect, getAnalytics);
 
+// Set no-cache headers for analytics route
+router.get('/analytics', protect, (req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  next();
+}, getAnalytics);
+
 export default router;
 
