@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { FileText, Home, Upload, FolderOpen, User, LogOut, Menu, X } from 'lucide-react';
+import { FileText, Home, Upload, FolderOpen, User, LogOut, Menu, X, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 
 const Layout = ({ children }) => {
@@ -18,6 +18,7 @@ const Layout = ({ children }) => {
     { path: '/dashboard', icon: Home, label: 'Dashboard' },
     { path: '/files', icon: Upload, label: 'My Files' },
     { path: '/groups', icon: FolderOpen, label: 'Groups' },
+    { path: '/analytics', icon: TrendingUp, label: 'Analytics' },
     { path: '/profile', icon: User, label: 'Profile' },
   ];
 
@@ -78,6 +79,7 @@ const Layout = ({ children }) => {
                 <Icon className="w-5 h-5" />
                 {item.label}
               </Link>
+              
             );
           })}
         </nav>

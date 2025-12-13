@@ -7,6 +7,7 @@ import {
   updateFile,
   deleteFile,
   getPublicFiles,
+  getAnalytics,
 } from '../controllers/fileController';
 import { protect } from '../middleware/auth';
 import { upload } from '../middleware/upload';
@@ -57,4 +58,8 @@ router.delete(
   clearFilesCache
 );
 
+// Analytics route 
+router.get('/analytics', protect, getAnalytics);
+
 export default router;
+

@@ -9,7 +9,7 @@ import axios from 'axios';
 import User from '../models/User';  
 import sendEmail from '../utils/sendEmail';
 
-
+//This function calculates MD5 hash of file buffer and returns it as a hex string
 const calculateFileHash = (buffer: Buffer): string => {
   return crypto.createHash('md5').update(buffer).digest('hex');
 };
@@ -318,6 +318,8 @@ if (!req.user || file.uploaderId.toString() !== req.user._id.toString()) {
     }
   }
 };
+
+// Update file metadata function
 export const updateFile = async (req: AuthRequest, res: Response) => {
   try {
     const file = await File.findById(req.params.id);
@@ -358,6 +360,7 @@ export const updateFile = async (req: AuthRequest, res: Response) => {
     }
 };
 
+// Update file metadata function
 export const deleteFile = async (req: AuthRequest, res: Response) => {
   try {
     const file = await File.findById(req.params.id);
@@ -378,6 +381,7 @@ export const deleteFile = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// Get public files with pagination and search function
 export const getPublicFiles = async (req: AuthRequest, res: Response) => {
   try {
     const { page = 1, limit = 10, search } = req.query;
@@ -410,3 +414,72 @@ export const getPublicFiles = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+// Get analytics for user's files function
+  export const getAnalytics = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
+    const [stats, topFiles, downloadsByDate, fileTypes] = await Promise.all([
+      // Total stats (you might already have this)
+      File.aggregate([
+        { $match: { uploaderId: req.user._id } },
+        {
+          $group: {
+            _id: null,
+            totalFiles: { $sum: 1 },
+            totalDownloads: { $sum: '$downloads' },
+            storageUsed: { $sum: '$size' },
+          },
+        },
+      ]),
+
+      // Top 10 files
+      File.find({ uploaderId: req.user._id })
+        .sort({ downloads: -1 })
+        .limit(10)
+        .select('title downloads fileType createdAt size'),
+
+      // Downloads over time (last 30 days)
+      File.aggregate([
+        { $match: { uploaderId: req.user._id } },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$updatedAt' } },
+            downloads: { $sum: '$downloads' },
+          },
+        },
+        { $sort: { _id: 1 } },
+        { $limit: 30 },
+      ]),
+
+      // File type breakdown
+      File.aggregate([
+        { $match: { uploaderId: req.user._id } },
+        {
+          $group: {
+            _id: '$fileType',
+            count: { $sum: 1 },
+            size: { $sum: '$size' },
+          },
+        },
+      ]),
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        totalFiles: stats[0]?.totalFiles || 0,
+        totalDownloads: stats[0]?.totalDownloads || 0,
+        storageUsed: stats[0]?.storageUsed || 0,
+        topFiles: topFiles || [],
+        downloadsByDate: downloadsByDate || [],
+        fileTypes: fileTypes || [],
+      },
+    });
+  } catch (error: any) {
+    console.error('Analytics error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+

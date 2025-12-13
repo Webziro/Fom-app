@@ -38,4 +38,6 @@ export const filesAPI = {
 
   updateFile: (id, data) => axios.put(`api/files/${id}`, data),
   deleteFile: (id) => axios.delete(`api/files/${id}`),
+
+  getAnalytics: () => axios.get('api/files/analytics'),
 };

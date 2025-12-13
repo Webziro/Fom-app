@@ -47,7 +47,8 @@ export const cache = (duration: number = 300) => {
     }
   };
 };
-
+//This exports a function that clears cached entries matching a given pattern so that stale data is not served.
+// See usage in routes/files.ts
 export const clearCache = async (pattern: string) => {
   try {
     const keys = await redis.keys(pattern);

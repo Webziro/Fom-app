@@ -15,6 +15,7 @@ import FilesPage from './pages/FilesPage';
 import GroupsPage from './pages/GroupsPage';
 import ProfilePage from './pages/ProfilePage';
 import PublicFilePage from './pages/PublicFilePage';
+import AnalyticsPage from './pages/AnalyticsPage';
 
 const queryClient = new QueryClient();
 
@@ -26,16 +27,17 @@ function App() {
         <BrowserRouter>
 
 
+            {/* Private Routes */}
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password/:resettoken" element={<ResetPasswordPage />} />
-
             <Route path="/dashboard" element={
               <PrivateRoute><DashboardPage /></PrivateRoute>
             } />
+
             <Route path="/files" element={
               <PrivateRoute><FilesPage /></PrivateRoute>
             } />
@@ -49,6 +51,9 @@ function App() {
             <Route path="/public/:id" element={<PublicFilePage />} />
 
             <Route path="*" element={<Navigate to="/" />} />
+
+            {/* Analytics Page Route */}
+            <Route path="/analytics" element={<PrivateRoute><AnalyticsPage /></PrivateRoute>} />
           </Routes>
           <Toaster position="top-right" />
         </BrowserRouter>
