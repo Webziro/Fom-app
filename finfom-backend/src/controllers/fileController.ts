@@ -426,11 +426,12 @@ export const getAnalytics = async (req: AuthRequest, res: Response) => {
     // CAST user ID FIRST (before using it)
     const userId = new mongoose.Types.ObjectId(req.user._id);
 
-    console.log('Authenticated user ID:', req.user._id);
-    console.log('Cast user ID:', userId.toString());
+    // console.log('Authenticated user ID:', req.user._id);
+    // console.log('Cast user ID:', userId.toString());
+       //console.log('Found files count:', files.length);
 
     const files = await File.find({ uploaderId: userId });
-    console.log('Found files count:', files.length);
+ 
     if (files.length > 0) {
       console.log('Sample file uploaderId:', files[0].uploaderId.toString());
     }
