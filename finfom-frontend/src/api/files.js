@@ -39,5 +39,15 @@ export const filesAPI = {
   updateFile: (id, data) => axios.put(`api/files/${id}`, data),
   deleteFile: (id) => axios.delete(`api/files/${id}`),
 
-  getAnalytics: () => axios.get('api/files/analytics'),
+  // getAnalytics: () => axios.get('api/files/analytics')
+
+  getAnalytics: () => {
+  const token = localStorage.getItem('token');
+  return axios.get('/api/files/analytics', {
+    baseURL: import.meta.env.VITE_API_BASE || 'http://localhost:5000',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+},
 };
+
+

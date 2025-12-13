@@ -20,6 +20,15 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Add token to requests
+axios.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 // Handle responses and errors
 axiosInstance.interceptors.response.use(
   (response) => response,
@@ -31,6 +40,7 @@ axiosInstance.interceptors.response.use(
     }
     return Promise.reject(error);
   }
+  
 );
 
 export default axiosInstance;

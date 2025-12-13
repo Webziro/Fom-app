@@ -416,49 +416,48 @@ export const getPublicFiles = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// Get analytics for user's files function
+// Get analytics for user's files function 
 export const getAnalytics = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
 
-    const [stats, topFiles, downloadsByDate] = await Promise.all([
-      File.aggregate([
-        { $match: { uploaderId: req.user._id } },
-        {
-          $group: {
-            _id: null,
-            totalDownloads: { $sum: '$downloads' },
-            totalFiles: { $sum: 1 },
-            storageUsed: { $sum: '$size' },
-          },
-        },
-      ]),
+    const files = await File.find({ uploaderId: req.user._id });
 
-      File.find({ uploaderId: req.user._id })
-        .sort({ downloads: -1 })
-        .limit(10)
-        .select('title downloads fileType createdAt size'),
+    const totalDownloads = files.reduce((sum, file) => sum + (file.downloads || 0), 0);
+    const totalFiles = files.length;
+    const storageUsed = files.reduce((sum, file) => sum + file.size, 0);
 
-      File.aggregate([
-        { $match: { uploaderId: req.user._id } },
-        {
-          $group: {
-            _id: { $dateToString: { format: '%Y-%m-%d', date: '$updatedAt' } },
-            downloads: { $sum: '$downloads' },
-          },
-        },
-        { $sort: { _id: 1 } },
-      ]),
-    ]);
+    const topFiles = files
+      .sort((a, b) => (b.downloads || 0) - (a.downloads || 0))
+      .slice(0, 10)
+      .map(f => ({
+        _id: f._id,
+        title: f.title,
+        downloads: f.downloads || 0,
+        fileType: f.fileType,
+        createdAt: f.createdAt,
+      }));
+
+    // Downloads by date (simple grouping)
+    const downloadsMap = {};
+    files.forEach(file => {
+      const date = new Date(file.updatedAt).toISOString().split('T')[0];
+      downloadsMap[date] = (downloadsMap[date] || 0) + (file.downloads || 0);
+    });
+
+    const downloadsByDate = Object.keys(downloadsMap)
+      .map(date => ({ _id: date, downloads: downloadsMap[date] }))
+      .sort((a, b) => a._id.localeCompare(b._id));
 
     res.json({
       success: true,
       data: {
-        totalDownloads: stats[0]?.totalDownloads || 0,
-        totalFiles: stats[0]?.totalFiles || 0,
-        storageUsed: stats[0]?.storageUsed || 0,
+        totalDownloads,
+        totalFiles,
+        storageUsed,
         topFiles,
         downloadsByDate,
+        fileTypes: [], // We'll add this later if needed
       },
     });
   } catch (error: any) {
