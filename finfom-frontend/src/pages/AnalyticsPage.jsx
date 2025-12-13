@@ -3,6 +3,11 @@ import { filesAPI } from '../api/files';
 import { TrendingUp, Download, Clock, Activity, BarChart3 } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { RefreshCw } from 'lucide-react';
+import Button from '../components/common/Button';
+import { useIsFetching } from '@tanstack/react-query';
 
 const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
@@ -25,7 +30,31 @@ const AnalyticsPage = () => {
     size: Math.round(t.size / 1024 / 1024), // MB
   })) || [];
 
-  const topFiles = analytics.topFiles || [];
+  // Invalidate queries for auto-refresh and focus refresh
+  const queryClient = useQueryClient();
+
+   const topFiles = analytics.topFiles || [];
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [queryClient]);
+
+  // Refresh when tab/window comes into focus (e.g., after download in another tab)
+  useEffect(() => {
+    const handleFocus = () => {
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [queryClient]);
+
+ 
 
   if (isLoading) return <Layout><div className="text-center py-20">Loading advanced analytics...</div></Layout>;
 
@@ -37,6 +66,16 @@ const AnalyticsPage = () => {
             <BarChart3 className="w-10 h-10 text-primary-600" />
             Advanced Analytics
           </h1>
+
+          <Button
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['analytics'] })}
+            variant="outline"
+            size="sm"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${useIsFetching ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+
           <p className="text-gray-600">Deep insights into your file activity</p>
         </div>
 
