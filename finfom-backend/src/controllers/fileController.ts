@@ -418,13 +418,14 @@ export const getPublicFiles = async (req: AuthRequest, res: Response) => {
 };
 
 // Get analytics for user's files function 
+
 export const getAnalytics = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
 
-    const userId = new mongoose.Types.ObjectId(req.user._id);  // ← Cast to ObjectId
+    const userId = new mongoose.Types.ObjectId(req.user._id);  // ← CAST TO OBJECTID
 
-    const files = await File.find({ uploaderId: userId });  // ← Use casted ID
+    const files = await File.find({ uploaderId: userId });  // ← NOW MATCHES
 
     const totalDownloads = files.reduce((sum, file) => sum + (file.downloads || 0), 0);
     const totalFiles = files.length;
