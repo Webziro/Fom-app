@@ -236,6 +236,7 @@ export const downloadFile = async (req: AuthRequest, res: Response) => {
     // Increment downloads
     file.downloads += 1;
     await file.save();
+    console.log(`Download counted for file ${file._id}. New count: ${file.downloads}`);
 
   // === SEND DOWNLOAD NOTIFICATION ===
 if (!req.user || file.uploaderId.toString() !== req.user._id.toString()) {
@@ -416,31 +417,28 @@ export const getPublicFiles = async (req: AuthRequest, res: Response) => {
 };
 
 // Get analytics for user's files function
-  export const getAnalytics = async (req: AuthRequest, res: Response) => {
+export const getAnalytics = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
 
-    const [stats, topFiles, downloadsByDate, fileTypes] = await Promise.all([
-      // Total stats (you might already have this)
+    const [stats, topFiles, downloadsByDate] = await Promise.all([
       File.aggregate([
         { $match: { uploaderId: req.user._id } },
         {
           $group: {
             _id: null,
-            totalFiles: { $sum: 1 },
             totalDownloads: { $sum: '$downloads' },
+            totalFiles: { $sum: 1 },
             storageUsed: { $sum: '$size' },
           },
         },
       ]),
 
-      // Top 10 files
       File.find({ uploaderId: req.user._id })
         .sort({ downloads: -1 })
         .limit(10)
         .select('title downloads fileType createdAt size'),
 
-      // Downloads over time (last 30 days)
       File.aggregate([
         { $match: { uploaderId: req.user._id } },
         {
@@ -450,31 +448,17 @@ export const getPublicFiles = async (req: AuthRequest, res: Response) => {
           },
         },
         { $sort: { _id: 1 } },
-        { $limit: 30 },
-      ]),
-
-      // File type breakdown
-      File.aggregate([
-        { $match: { uploaderId: req.user._id } },
-        {
-          $group: {
-            _id: '$fileType',
-            count: { $sum: 1 },
-            size: { $sum: '$size' },
-          },
-        },
       ]),
     ]);
 
     res.json({
       success: true,
       data: {
-        totalFiles: stats[0]?.totalFiles || 0,
         totalDownloads: stats[0]?.totalDownloads || 0,
+        totalFiles: stats[0]?.totalFiles || 0,
         storageUsed: stats[0]?.storageUsed || 0,
-        topFiles: topFiles || [],
-        downloadsByDate: downloadsByDate || [],
-        fileTypes: fileTypes || [],
+        topFiles,
+        downloadsByDate,
       },
     });
   } catch (error: any) {
@@ -482,4 +466,3 @@ export const getPublicFiles = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
