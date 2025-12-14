@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Button from '../components/common/Button';
+import FolderCreateModal from '../components/folders/FolderCreateModal';
 
 const FilesPage = () => {
   const [showUpload, setShowUpload] = useState(false);
@@ -28,6 +29,7 @@ const FilesPage = () => {
   const queryClient = useQueryClient();
   const { user } = useContext(AuthContext);
   const menuRef = useRef(null);
+  const [showCreateFolder, setShowCreateFolder] = useState(false);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -267,6 +269,32 @@ const FilesPage = () => {
           onClose={() => setShowUpload(false)}
         />
       )}
+
+      {/* Create Folder Modal */}
+      {showCreateFolder && (
+        <CreateFolderModal
+          onSuccess={() => queryClient.invalidateQueries({ queryKey: ['myFiles'] })}
+          onClose={() => setShowCreateFolder(false)}
+        />
+      )}
+
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-3xl font-bold text-gray-900">My Files</h1>
+        <div className="flex gap-3">
+          <Button
+            onClick={() => setShowCreateFolder(true)}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <FolderPlus className="w-5 h-5" />
+            New Folder
+          </Button>
+          <Button onClick={() => setShowUpload(true)} className="flex items-center gap-2">
+            <Upload className="w-5 h-5" />
+            Upload File
+          </Button>
+        </div>
+      </div>
 
       {/* File Preview Modal */}
       {previewFile && (
