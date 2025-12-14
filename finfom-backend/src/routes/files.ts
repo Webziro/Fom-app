@@ -8,11 +8,14 @@ import {
   deleteFile,
   getPublicFiles,
   getAnalytics,
+  createFolder, getMyFolders, updateFolder, deleteFolder
+  
 } from '../controllers/fileController';
 import { protect } from '../middleware/auth';
 import { upload } from '../middleware/upload';
 import { uploadLimiter, downloadLimiter } from '../middleware/rateLimiter';
 import { cache, clearCache } from '../middleware/cache';
+
 
 const router = express.Router();
 
@@ -57,6 +60,12 @@ router.delete(
   deleteFile,
   clearFilesCache
 );
+
+// Folder routes
+router.post('/folders', protect, createFolder);
+router.get('/folders', protect, getMyFolders);
+router.put('/folders/:id', protect, updateFolder);
+router.delete('/folders/:id', protect, deleteFolder);
 
 // Analytics route 
 // router.get('/analytics', protect, getAnalytics);

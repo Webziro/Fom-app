@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { filesAPI } from '../api/files';
 import { TrendingUp, BarChart3, Activity } from 'lucide-react';
 import Layout from '../components/layout/Layout';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
@@ -14,9 +14,8 @@ const AnalyticsPage = () => {
 
   const files = filesData?.data?.data || [];
 
-  // Calculate everything client-side like Dashboard does
+  // Calculate everything client-side (same as Dashboard)
   const totalDownloads = files.reduce((sum, f) => sum + (f.downloads || 0), 0);
-  const storageUsed = files.reduce((sum, f) => sum + f.size, 0);
 
   const downloadsByDate = files.reduce((acc, file) => {
     const date = new Date(file.updatedAt).toISOString().split('T')[0];
@@ -46,7 +45,13 @@ const AnalyticsPage = () => {
     .sort((a, b) => (b.downloads || 0) - (a.downloads || 0))
     .slice(0, 10);
 
-  if (isLoading) return <Layout><div className="text-center py-20">Loading analytics...</div></Layout>;
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="text-center py-20">Loading analytics...</div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -59,10 +64,7 @@ const AnalyticsPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Downloads Over Time */}
           <div className="bg-white rounded-xl shadow p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <TrendingUp className="w-6 h-6 text-blue-600" />
-              Downloads Over Time
-            </h2>
+            <h2 className="text-xl font-bold mb-4">Downloads Over Time</h2>
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={chartData}>
@@ -106,7 +108,7 @@ const AnalyticsPage = () => {
           </div>
         </div>
 
-        {/* Top Files */}
+        {/* Top 10 Most Downloaded Files */}
         <div className="bg-white rounded-xl shadow p-6">
           <h2 className="text-xl font-bold mb-4">Top 10 Most Downloaded Files</h2>
           {topFiles.length > 0 ? (

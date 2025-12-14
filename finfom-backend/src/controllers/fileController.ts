@@ -491,3 +491,64 @@ export const getAnalytics = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// Folder management controllers
+export const createFolder = async (req: AuthRequest, res: Response) => {
+  try {
+    const { title, description, parentFolder } = req.body;
+
+    const folder = await Folder.create({
+      title,
+      description,
+      uploaderId: req.user._id,
+      parentFolder: parentFolder || null,
+    });
+
+    res.status(201).json({ success: true, data: folder });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+export const getMyFolders = async (req: AuthRequest, res: Response) => {
+  try {
+    const folders = await Folder.find({ uploaderId: req.user._id })
+      .sort({ createdAt: -1 });
+
+    res.json({ success: true, data: folders });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+export const updateFolder = async (req: AuthRequest, res: Response) => {
+  try {
+    const folder = await Folder.findById(req.params.id);
+    if (!folder || folder.uploaderId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    folder.title = req.body.title || folder.title;
+    folder.description = req.body.description || folder.description;
+
+    await folder.save();
+    res.json({ success: true, data: folder });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const deleteFolder = async (req: AuthRequest, res: Response) => {
+  try {
+    const folder = await Folder.findById(req.params.id);
+    if (!folder || folder.uploaderId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    // Optional: check if folder has files or subfolders
+    await Folder.deleteOne({ _id: req.params.id });
+
+    res.json({ success: true, message: 'Folder deleted' });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};

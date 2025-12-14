@@ -17,6 +17,7 @@ export interface IFile extends Document {
   createdAt: Date;
   updatedAt: Date;
   expiresAt?: Date;
+  folderId?: mongoose.Types.ObjectId;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -64,6 +65,11 @@ const FileSchema = new Schema<IFile>({
     enum: ['public', 'private', 'password'],
     default: 'private',
     index: true
+  },
+  folderId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Folder',
+    default: null,
   },
   password: {
     type: String,
