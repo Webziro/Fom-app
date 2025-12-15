@@ -213,17 +213,16 @@ const FilesPage = () => {
       Share
     </button>
 
-    {/* Move to Folder - NEW */}
+    {/* Move to Folder*/}
     <button
       onClick={(e) => {
         e.stopPropagation();
-        toast.info('Move to folder feature coming soon!');
+        setMoveFile(file);
         setOpenMenuId(null);
       }}
-      className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left border-t"
-    >
+      className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left border-t">
       <FolderOpen className="w-4 h-4" />
-      Move to Folder
+        Move to Folder
     </button>
 
     {/* Download */}
