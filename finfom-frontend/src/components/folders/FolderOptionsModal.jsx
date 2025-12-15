@@ -47,9 +47,9 @@ const FolderOptionsModal = ({ folder, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold">Folder Options</h2>
+          <h2 className="text-2xl font-bold text-gray-600 dark:text-gray-300">Folder Options</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-6 h-6" />
           </button>
@@ -58,8 +58,8 @@ const FolderOptionsModal = ({ folder, onClose }) => {
         {/* Rename Section */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-medium flex items-center gap-2">
-              <Edit2 className="w-5 h-5" />
+            <h3 className="font-medium flex items-center gap-2 text-gray-600 dark:text-gray-300">
+              <Edit2 className="w-5 h-5 "  />
               Rename Folder
             </h3>
             <button
@@ -94,7 +94,7 @@ const FolderOptionsModal = ({ folder, onClose }) => {
             <Trash2 className="w-5 h-5" />
             Delete Folder
           </h3>
-          <p className="text-sm text-gray-600 mb-4">
+          <p className="text-sm text-gray-600 mb-4  text-gray-900 dark:text-white">
             This will delete the folder and all files inside. This action cannot be undone.
           </p>
           <Button variant="danger" onClick={handleDelete} disabled={deleteMutation.isPending}>

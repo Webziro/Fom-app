@@ -28,7 +28,7 @@ const MoveToFolderModal = ({ file, folders, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold flex items-center gap-3">
             <FolderOpen className="w-8 h-8 text-primary-600" />
@@ -41,7 +41,7 @@ const MoveToFolderModal = ({ file, folders, onClose }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="text-gray-700 dark:text-gray-300 block text-sm font-medium text-gray-700 mb-2">
               Select Folder
             </label>
             <select

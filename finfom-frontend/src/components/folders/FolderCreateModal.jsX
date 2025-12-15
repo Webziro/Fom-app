@@ -43,12 +43,12 @@ const FolderCreateModal = ({ onClose }) => {
           <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
             <FolderPlus className="w-7 h-7 text-primary-600" />
           </div>
-          <h2 className="text-2xl font-bold">Create New Folder</h2>
+          <h2 className="text-2xl font-bold text-gray-600 dark:text-gray-300">Create New Folder</h2>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="text-gray-700 dark:text-gray-300 block text-sm font-medium text-gray-700 mb-2">
+            <label className="text-gray-700 dark:text-gray-300 block text-sm font-medium text-gray-700 mb-2"> 
               Folder Name <span className="text-red-500">*</span>
             </label>
             <input
@@ -63,7 +63,7 @@ const FolderCreateModal = ({ onClose }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2 text-gray-600 dark:text-gray-300">
               Description (optional)
             </label>
             <textarea
@@ -75,7 +75,7 @@ const FolderCreateModal = ({ onClose }) => {
             />
           </div>
 
-          <div className="flex gap-3 pt-4">
+          <div className="flex gap-3 pt-4 text-gray-600 dark:text-gray-300">
             <Button type="submit" disabled={mutation.isPending} className="flex-1">
               {mutation.isPending ? 'Creating...' : 'Create Folder'}
             </Button>

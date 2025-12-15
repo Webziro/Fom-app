@@ -69,13 +69,13 @@ const FolderViewPage = () => {
     }
   };
 
-  if (isLoading) return <Layout><div className="text-center py-20">Loading...</div></Layout>;
+  if (isLoading) return <Layout><div className="text-center py-20 ">Loading...</div></Layout>;
 
   return (
     <Layout>
       <div className="max-w-7xl mx-auto p-6">
         {/* Breadcrumb */}
-        <Link to="/files" className="flex items-center gap-2 text-primary-600 hover:underline mb-6">
+        <Link to="/files" className="flex items-center gap-2 text-primary-600 hover:underline mb-6 ">
           <ArrowLeft className="w-5 h-5" />
           Back to My Files
         </Link>
@@ -86,7 +86,7 @@ const FolderViewPage = () => {
         </h1>
 
         {files.length === 0 ? (
-          <p className="text-center text-gray-500 py-20 text-gray-600 dark:text-gray-300">This folder is empty</p>
+          <p className="text-center text-gray-500 py-20 text-gray-600 dark:text-gray-300 ">This folder is empty</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {files.map((file) => {

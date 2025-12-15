@@ -168,7 +168,7 @@ const FilesPage = () => {
         {/* Folders Section */}
         {folders.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-bold mb-4">My Folders</h2>
+            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">My Folders</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {folders.map((folder) => (
                 <div
@@ -252,7 +252,7 @@ const FilesPage = () => {
         }
         setOpenMenuId(null);
       }}
-      className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left rounded-t-lg"
+      className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left rounded-t-lg text-gray-400 dark:text-gray-300"
       disabled={file.visibility !== 'public' && !isOwner}
       style={{ opacity: (file.visibility !== 'public' && !isOwner) ? 0.5 : 1 }}
     >
@@ -267,7 +267,7 @@ const FilesPage = () => {
         setMoveFile(file);
         setOpenMenuId(null);
       }}
-      className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left border-t"
+      className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left border-t text-gray-900 dark:text-gray-300"
     >
       <FolderOpen className="w-4 h-4" />
         Move to Folder
@@ -287,7 +287,7 @@ const FilesPage = () => {
         e.stopPropagation();
         handleDownload(file._id);
       }}
-      className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left border-t"
+      className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left border-t text-gray-900 dark:text-gray-300"
     >
       <Download className="w-4 h-4" />
       Download
@@ -309,45 +309,45 @@ const FilesPage = () => {
   </div>
 )}
 
-                    </div>
-                  </div>
+  </div>
+  </div>
 
-                  <h3 className="font-semibold text-gray-900 mb-1 truncate">{file.title}</h3>
-                  {file.description && (
-                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">{file.description}</p>
-                  )}
+    <h3 className="font-semibold text-gray-900 mb-1 truncate">{file.title}</h3>
+    {file.description && (
+      <p className="text-sm text-gray-600 mb-3 line-clamp-2">{file.description}</p>
+    )}
 
-                  <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
-                    <span>{formatBytes(file.size)}</span>
-                    <span
-                      className={`px-2 py-1 rounded text-xs ${file.visibility === 'public'
-                        ? 'bg-green-100 text-green-700'
-                        : file.visibility === 'password'
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-gray-100 text-gray-700'
-                        }`}
-                    >
-                      {file.visibility}
-                    </span>
-                  </div>
+    <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
+    <span>{formatBytes(file.size)}</span>
+    <span
+      className={`px-2 py-1 rounded text-xs ${file.visibility === 'public'
+        ? 'bg-green-100 text-green-700'
+        : file.visibility === 'password'
+          ? 'bg-yellow-100 text-yellow-700'
+          : 'bg-gray-100 text-gray-700'
+        }`}
+              >
+                {file.visibility}
+              </span>
+            </div>
 
-                  {!isOwner && file.uploaderId && (
-                    <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
-                      <User className="w-3 h-3" />
-                      <span>Uploaded by {file.uploaderId.username}</span>
-                    </div>
-                  )}
+            {!isOwner && file.uploaderId && (
+              <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+                <User className="w-3 h-3" />
+                <span>Uploaded by {file.uploaderId.username}</span>
+              </div>
+            )}
 
-                  <div className="mt-3 pt-3 border-t flex items-center justify-between text-xs text-gray-500">
-                    <span>{new Date(file.createdAt).toLocaleDateString()}</span>
-                    <span>{file.downloads} downloads</span>
-                  </div>
-                </div>
-              );
-            })}
+            <div className="mt-3 pt-3 border-t flex items-center justify-between text-xs text-gray-500">
+              <span>{new Date(file.createdAt).toLocaleDateString()}</span>
+              <span>{file.downloads} downloads</span>
+            </div>
           </div>
-        )}
-      </div>
+        );
+      })}
+    </div>
+  )}
+</div>
 
       {/* Upload Modal */}
       {showUpload && (
@@ -363,13 +363,13 @@ const FilesPage = () => {
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-3xl font-bold text-gray-900">My Files</h1>
-        <div className="flex gap-3">
+        <div className="flex gap-3 text-gray-600 dark:text-gray-300">
           <Button
             onClick={() => setShowCreateFolder(true)}
             variant="outline"
             className="flex items-center gap-2"
           >
-            <FolderPlus className="w-5 h-5" />
+            <FolderPlus className="w-5 h-5 " />
             New Folder
           </Button>
           <Button onClick={() => setShowUpload(true)} className="flex items-center gap-2">

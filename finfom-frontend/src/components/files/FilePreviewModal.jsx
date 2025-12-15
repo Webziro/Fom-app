@@ -31,7 +31,7 @@ const FilePreviewModal = ({ file, onClose, onDownload }) => {
         switch (fileType) {
             case 'image':
                 return (
-                    <div className="flex items-center justify-center bg-gray-100 rounded-lg p-4 min-h-[400px]">
+                    <div className="dark:bg-gray-800 flex items-center justify-center bg-gray-100 rounded-lg p-4 min-h-[400px]">
                         {imageError ? (
                             <div className="text-center">
                                 <FileText className="w-16 h-16 text-gray-400 mx-auto mb-2" />
