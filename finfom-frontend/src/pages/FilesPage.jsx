@@ -40,6 +40,8 @@ const FilesPage = () => {
   const [moveFile, setMoveFile] = useState(null);
   const { folderId } = useParams();
   const navigate = useNavigate();
+  const [selectedFolder, setSelectedFolder] = useState(null);
+  
 
 
   // Close menu when clicking outside
@@ -164,62 +166,80 @@ const FilesPage = () => {
         </div>
 
         {/* Folders Section */}
-        {folders.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-xl font-bold mb-4">My Folders</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {folders.map((folder) => (
-                <div
-                  key={folder._id}
-                  className="bg-white rounded-xl shadow hover:shadow-lg transition-shadow p-6 cursor-pointer border border-gray-200 hover:border-primary-300"
-                  onClick={() => navigate(`/folders/${folder._id}`)}
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    <FolderOpen className="w-10 h-10 text-primary-600" />
-                    <h3 className="font-medium text-gray-900">{folder.title}</h3>
-                  </div>
-                  {folder.description && <p className="text-sm text-gray-600">{folder.description}</p>}
-                  <p className="text-xs text-gray-500 mt-3">
-                    Created {new Date(folder.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-              ))}
+{folders.length > 0 && (
+  <div className="mb-8">
+    <h2 className="text-xl font-bold mb-4">My Folders</h2>
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      {folders.map((folder) => (
+        <div
+          key={folder._id}
+          className="bg-white rounded-xl shadow hover:shadow-lg transition-shadow p-6 border border-gray-200 hover:border-primary-300 relative group"
+        >
+          {/* Three-Dots Menu Button */}
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition z-10">
+            <button
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent card navigation
+                setSelectedFolder(folder);
+              }}
+              className="p-2 hover:bg-gray-100 rounded-lg"
+            >
+              <MoreVertical className="w-5 h-5 text-gray-400" />
+            </button>
+          </div>
+
+          {/* Card Content - Click to open folder */}
+          <div
+            className="flex flex-col h-full cursor-pointer"
+            onClick={() => navigate(`/folders/${folder._id}`)}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <FolderOpen className="w-10 h-10 text-primary-600" />
+              <h3 className="font-medium text-gray-900">{folder.title}</h3>
             </div>
+            {folder.description && <p className="text-sm text-gray-600">{folder.description}</p>}
+            <p className="text-xs text-gray-500 mt-auto pt-3">
+              Created {new Date(folder.createdAt).toLocaleDateString()}
+            </p>
           </div>
-        )}
+        </div>
+      ))}
+    </div>
+  </div>
+)}
 
-        {/* Files Grid */}
-        {isLoading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading files...</p>
-          </div>
+      {/* Files Grid */}
+      {isLoading ? (
+      <div className="text-center py-12">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+        <p className="mt-4 text-gray-600">Loading files...</p>
+      </div>
         ) : files.length === 0 ? (
-          <div className="card text-center py-12">
-            <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 mb-4">No files found</p>
-            <Button onClick={() => setShowUpload(true)}>Upload Your First File</Button>
-          </div>
+        <div className="card text-center py-12">
+        <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+        <p className="text-gray-600 mb-4">No files found</p>
+        <Button onClick={() => setShowUpload(true)}>Upload Your First File</Button>
+        </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {files.map((file) => {
-              const isOwner = user?.id === file.uploaderId?._id;
-              const isMenuOpen = openMenuId === file._id;
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {files.map((file) => {
+        const isOwner = user?.id === file.uploaderId?._id;
+        const isMenuOpen = openMenuId === file._id;
 
-              return (
-                <div key={file._id} className="card hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setPreviewFile(file)}>
-                  <div className="flex items-start justify-between mb-3">
-                    <FileText className="w-8 h-8 text-primary-600" />
-                    
-                    <div className="relative" ref={isMenuOpen ? menuRef : null} onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => toggleMenu(file._id)}
-                        className="p-1 hover:bg-gray-100 rounded"
-                      >
-                        <MoreVertical className="w-5 h-5 text-gray-400" />
-                      </button>
+      return (
+        <div key={file._id} className="card hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setPreviewFile(file)}>
+          <div className="flex items-start justify-between mb-3">
+            <FileText className="w-8 h-8 text-primary-600" />
+            
+            <div className="relative" ref={isMenuOpen ? menuRef : null} onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => toggleMenu(file._id)}
+                className="p-1 hover:bg-gray-100 rounded"
+              >
+                <MoreVertical className="w-5 h-5 text-gray-400" />
+              </button>
 
-                    {isMenuOpen && (
+            {isMenuOpen && (
   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-10">
     {/* Share Button */}
     <button
@@ -260,6 +280,13 @@ const FilesPage = () => {
         onClose={() => setMoveFile(null)}
       />
     )}  
+
+    {selectedFolder && (
+      <FolderOptionsModal
+        folder={selectedFolder}
+        onClose={() => setSelectedFolder(null)}
+      />
+    )}
 
     {/* Download */}
     <button

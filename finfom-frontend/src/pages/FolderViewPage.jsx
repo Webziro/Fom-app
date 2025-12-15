@@ -4,9 +4,9 @@ import { filesAPI } from '../api/files';
 import Layout from '../components/layout/Layout';
 import { ArrowLeft, FolderOpen, FileText, Download, Trash2, MoreVertical } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useState, useRef } from 'react';
 import Button from '../components/common/Button';
 import FilePreviewModal from '../components/files/FilePreviewModal';
+import { useEffect, useState, useRef } from 'react';  
 
 const FolderViewPage = () => {
   const { id } = useParams();
@@ -145,4 +145,13 @@ const FolderViewPage = () => {
   );
 };
 
+const formatBytes = (bytes) => {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+};
+
 export default FolderViewPage;
+
