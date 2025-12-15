@@ -39,8 +39,9 @@ export const filesAPI = {
   updateFile: (id, data) => axios.put(`api/files/${id}`, data),
   deleteFile: (id) => axios.delete(`api/files/${id}`),
 
-  //Create Folder
+  // Folder APIs
   createFolder: (data) => axios.post('api/files/folders', data),
+  getMyFolders: () => axios.get('api/files/folders'),
 
   // getAnalytics: () => axios.get('api/files/analytics')
 
