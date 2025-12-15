@@ -335,6 +335,10 @@ export const updateFile = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
+    if (req.body.folderId !== undefined) {
+      file.folderId = req.body.folderId || null;
+    }
+
     const { title, description, groupId, visibility, password } = req.body;
 
     if (title) file.title = title.trim();
