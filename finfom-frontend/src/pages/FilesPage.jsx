@@ -62,7 +62,6 @@ const FilesPage = () => {
     queryKey: ['folders'],
     queryFn: filesAPI.getMyFolders,
   });
-
   const folders = foldersData?.data?.data || [];
 
   // Delete mutation for files
@@ -171,7 +170,7 @@ const FilesPage = () => {
                 <div
                   key={folder._id}
                   className="bg-white rounded-xl shadow hover:shadow-lg transition-shadow p-6 cursor-pointer border border-gray-200 hover:border-primary-300"
-                  onClick={() => toast.info('Folder view coming soon!')}
+                  onClick={() => navigate(`/folders/${folder._id}`)}
                 >
                   <div className="flex items-center gap-3 mb-3">
                     <FolderOpen className="w-10 h-10 text-primary-600" />
