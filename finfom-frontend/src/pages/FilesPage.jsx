@@ -220,10 +220,19 @@ const FilesPage = () => {
         setMoveFile(file);
         setOpenMenuId(null);
       }}
-      className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left border-t">
+      className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left border-t"
+    >
       <FolderOpen className="w-4 h-4" />
         Move to Folder
     </button>
+
+    {moveFile && (
+      <MoveToFolderModal
+        file={moveFile}
+        folders={folders}
+        onClose={() => setMoveFile(null)}
+      />
+    )}
 
     {/* Download */}
     <button
