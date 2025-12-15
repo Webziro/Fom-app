@@ -19,12 +19,12 @@ import {
   FolderPlus,
   FolderOpen,
 } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Button from '../components/common/Button';
 import FolderCreateModal from '../components/folders/FolderCreateModal';
 import MoveToFolderModal from '../components/folders/MoveToFolderModal';
-import { useParams } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
+import FolderOptionsModal from '../components/folders/FolderOptionsModal';
 
 
 //All the usestate and useeffect hooks and other logic
@@ -166,47 +166,47 @@ const FilesPage = () => {
         </div>
 
         {/* Folders Section */}
-{folders.length > 0 && (
-  <div className="mb-8">
-    <h2 className="text-xl font-bold mb-4">My Folders</h2>
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-      {folders.map((folder) => (
-        <div
-          key={folder._id}
-          className="bg-white rounded-xl shadow hover:shadow-lg transition-shadow p-6 border border-gray-200 hover:border-primary-300 relative group"
-        >
-          {/* Three-Dots Menu Button */}
-          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition z-10">
-            <button
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent card navigation
-                setSelectedFolder(folder);
-              }}
-              className="p-2 hover:bg-gray-100 rounded-lg"
-            >
-              <MoreVertical className="w-5 h-5 text-gray-400" />
-            </button>
-          </div>
+        {folders.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-bold mb-4">My Folders</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {folders.map((folder) => (
+                <div
+                  key={folder._id}
+                  className="bg-white rounded-xl shadow hover:shadow-lg transition-shadow p-6 border border-gray-200 hover:border-primary-300 relative group"
+                >
+                  {/* Three-Dots Button */}
+                  <div className="absolute top-2 right-2 z-10">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent navigating to folder view
+                        setSelectedFolder(folder);
+                      }}
+                      className="p-2 hover:bg-gray-100 rounded-lg opacity-0 group-hover:opacity-100 transition"
+                    >
+                      <MoreVertical className="w-5 h-5 text-gray-400" />
+                    </button>
+                  </div>
 
-          {/* Card Content - Click to open folder */}
-          <div
-            className="flex flex-col h-full cursor-pointer"
-            onClick={() => navigate(`/folders/${folder._id}`)}
-          >
-            <div className="flex items-center gap-3 mb-3">
-              <FolderOpen className="w-10 h-10 text-primary-600" />
-              <h3 className="font-medium text-gray-900">{folder.title}</h3>
+                  {/* Card Content - Click to open folder */}
+                  <div
+                    className="h-full cursor-pointer"
+                    onClick={() => navigate(`/folders/${folder._id}`)}
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <FolderOpen className="w-10 h-10 text-primary-600" />
+                      <h3 className="font-medium text-gray-900">{folder.title}</h3>
+                    </div>
+                    {folder.description && <p className="text-sm text-gray-600">{folder.description}</p>}
+                    <p className="text-xs text-gray-500 mt-3">
+                      Created {new Date(folder.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
-            {folder.description && <p className="text-sm text-gray-600">{folder.description}</p>}
-            <p className="text-xs text-gray-500 mt-auto pt-3">
-              Created {new Date(folder.createdAt).toLocaleDateString()}
-            </p>
           </div>
-        </div>
-      ))}
-    </div>
-  </div>
-)}
+        )}
 
       {/* Files Grid */}
       {isLoading ? (
@@ -280,13 +280,6 @@ const FilesPage = () => {
         onClose={() => setMoveFile(null)}
       />
     )}  
-
-    {selectedFolder && (
-      <FolderOptionsModal
-        folder={selectedFolder}
-        onClose={() => setSelectedFolder(null)}
-      />
-    )}
 
     {/* Download */}
     <button
@@ -400,6 +393,14 @@ const FilesPage = () => {
         <ShareModal
           file={shareFile}
           onClose={() => setShareFile(null)}
+        />
+      )}
+
+      {/* Folder Options Modal */}
+      {selectedFolder && (
+        <FolderOptionsModal
+          folder={selectedFolder}
+          onClose={() => setSelectedFolder(null)}
         />
       )}
 
