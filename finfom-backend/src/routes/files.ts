@@ -8,8 +8,7 @@ import {
   deleteFile,
   getPublicFiles,
   getAnalytics,
-  createFolder, getMyFolders, updateFolder, deleteFolder
-  
+  createFolder, getMyFolders, updateFolder, deleteFolder, getFolder
 } from '../controllers/fileController';
 import { protect } from '../middleware/auth';
 import { upload } from '../middleware/upload';
@@ -70,7 +69,7 @@ router.post('/folders', protect, createFolder);
 router.get('/folders', protect, getMyFolders);
 router.put('/folders/:id', protect, updateFolder);
 router.delete('/folders/:id', protect, deleteFolder);
-
+router.get('/folders/:id', protect, getFolder);
 
 // Analytics route 
 // router.get('/analytics', protect, getAnalytics);

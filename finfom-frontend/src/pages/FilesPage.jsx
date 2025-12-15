@@ -24,6 +24,7 @@ import Button from '../components/common/Button';
 import FolderCreateModal from '../components/folders/FolderCreateModal';
 import MoveToFolderModal from '../components/folders/MoveToFolderModal';
 import { useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 
 //All the usestate and useeffect hooks and other logic
@@ -38,6 +39,7 @@ const FilesPage = () => {
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [moveFile, setMoveFile] = useState(null);
   const { folderId } = useParams();
+  const navigate = useNavigate();
 
 
   // Close menu when clicking outside
@@ -54,7 +56,7 @@ const FilesPage = () => {
   // Fetch files with react-query
   const { data, isLoading } = useQuery({
     queryKey: ['myFiles', searchTerm, folderId],
-    queryFn: () => filesAPI.getMyFiles({ search: searchTerm, limit: 50, folderId: folderId || null }),
+    queryFn: () => filesAPI.getMyFiles({ search: searchTerm, limit: 50, folderId: null }),
   });
 
   // Fetch folders with react-query

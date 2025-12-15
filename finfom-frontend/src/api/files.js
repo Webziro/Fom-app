@@ -5,7 +5,8 @@ export const filesAPI = {
   uploadFile: (formData) => axios.post('api/files/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),
-  getMyFiles: (params) => axios.get('api/files', { params }),
+  // getMyFiles: (params) => axios.get('api/files', { params }),
+  getMyFiles: (params = {}) => axios.get('api/files', { params }),
   getPublicFiles: (params) => axios.get('api/files/public', { params }),
 
   getFile: (id, password = '') => {

@@ -172,6 +172,7 @@ export const getMyFiles = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// Get single file with access control
 export const getFile = async (req: AuthRequest, res: Response) => {
   try {
     const file = await File.findById(req.params.id)
@@ -219,6 +220,28 @@ export const getFile = async (req: AuthRequest, res: Response) => {
   } catch (error: any) {
     console.error('getFile error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Get single folder with access control
+export const getFolder = async (req: AuthRequest, res: Response) => {
+  try {
+    const folder = await Folder.findById(req.params.id)
+      .select('title description createdAt uploaderId');
+
+    if (!folder) {
+      return res.status(404).json({ message: 'Folder not found' });
+    }
+
+    // Only owner can view folder details
+    if (folder.uploaderId.toString() !== req.user?._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    res.json({ success: true, data: folder });
+  } catch (error: any) {
+    console.error('getFolder error:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 };
 

@@ -2,7 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { filesAPI } from '../api/files';
 import Layout from '../components/layout/Layout';
-import { ArrowLeft } from 'lucide-react';
+import { FileText, FolderOpen, ArrowLeft } from 'lucide-react';
 
 const FolderViewPage = () => {
   const { id } = useParams();
