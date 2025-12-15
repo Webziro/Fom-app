@@ -16,6 +16,7 @@ import {
   Trash2,
   MoreVertical,
   User,
+  FolderPlus,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Button from '../components/common/Button';
