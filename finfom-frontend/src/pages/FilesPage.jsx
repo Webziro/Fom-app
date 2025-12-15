@@ -117,12 +117,14 @@ const FilesPage = () => {
     }
   };
 
+  // Delete handler
   const handleDelete = (fileId) => {
     if (window.confirm('Are you sure you want to delete this file?')) {
       deleteMutation.mutate(fileId);
     }
   };
 
+  //toggle menu
   const toggleMenu = (fileId) => {
     setOpenMenuId(openMenuId === fileId ? null : fileId);
   };
