@@ -136,13 +136,16 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 
 export const getMyFiles = async (req: AuthRequest, res: Response) => {
   try {
-    const { page = 1, limit = 10, search } = req.query;
+    const { page = 1, limit = 10, search, folderId } = req.query;
     const query: any = {
-      $or: [
-        { uploaderId: req.user!._id },
-        { visibility: 'public' }
-      ]
+      uploaderId: req.user!._id,  // Only user's files
     };
+
+    if (folderId) {
+      query.folderId = folderId;  // Filter by specific folder
+    } else {
+      query.folderId = null;  // Root: no folder
+    }
 
     if (search) {
       query.$text = { $search: search as string };
@@ -359,6 +362,12 @@ export const updateFile = async (req: AuthRequest, res: Response) => {
     }
 
     if (req.body.folderId !== undefined) {
+      if (req.body.folderId) {
+        const targetFolder = await Folder.findById(req.body.folderId);
+        if (!targetFolder || targetFolder.uploaderId.toString() !== req.user._id.toString()) {
+          return res.status(400).json({ message: 'Invalid folder' });
+        }
+      }
       file.folderId = req.body.folderId || null;
     }
 
