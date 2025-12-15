@@ -66,6 +66,11 @@ router.post('/folders', protect, createFolder);
 router.get('/folders', protect, getMyFolders);
 router.put('/folders/:id', protect, updateFolder);
 router.delete('/folders/:id', protect, deleteFolder);
+router.post('/folders', protect, createFolder);
+router.get('/folders', protect, getMyFolders);
+router.put('/folders/:id', protect, updateFolder);
+router.delete('/folders/:id', protect, deleteFolder);
+
 
 // Analytics route 
 // router.get('/analytics', protect, getAnalytics);
