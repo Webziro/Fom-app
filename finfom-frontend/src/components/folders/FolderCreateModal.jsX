@@ -34,7 +34,7 @@ const FolderCreateModal = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 relative">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 relative">
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
           <X className="w-6 h-6" />
         </button>
@@ -48,7 +48,7 @@ const FolderCreateModal = ({ onClose }) => {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="text-gray-700 dark:text-gray-300 block text-sm font-medium text-gray-700 mb-2">
               Folder Name <span className="text-red-500">*</span>
             </label>
             <input

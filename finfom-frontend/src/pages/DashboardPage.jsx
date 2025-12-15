@@ -154,7 +154,7 @@ const DashboardPage = () => {
         {/* Recent Files */}
         <div className="card">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Recent Files</h2>
+            <h2 className="dark:bg-gray-800 text-xl font-semibold">Recent Files</h2>
             <Link to="/files" className="hover:bg-[#1d4ed8] hover:text-primary-700 text-sm">
               View All →
             </Link>
