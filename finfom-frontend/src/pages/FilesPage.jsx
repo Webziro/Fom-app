@@ -17,11 +17,11 @@ import {
   MoreVertical,
   User,
   FolderPlus,
+  FolderOpen,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Button from '../components/common/Button';
 import FolderCreateModal from '../components/folders/FolderCreateModal';
-import { FolderOpen } from 'lucide-react';
 
 const FilesPage = () => {
   const [showUpload, setShowUpload] = useState(false);
