@@ -116,7 +116,7 @@ const FolderViewPage = () => {
                       )}
                     </div>
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-1 truncate">{file.title}</h3>
+                  <h3 className="font-semibold text-gray-900 dark:bg-gray-800 mb-1 truncate">{file.title}</h3>
                   {file.description && <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 line-clamp-2 ">{file.description}</p>}
                   <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
                     <span>{formatBytes(file.size)}</span>

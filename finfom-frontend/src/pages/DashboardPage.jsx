@@ -161,7 +161,7 @@ const DashboardPage = () => {
           </div>
           <div className="space-y-2">
             {files.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No files yet. Upload your first file!</p>
+              <p className="text-gray-600 dark:text-gray-300 text-center py-4">No files yet. Upload your first file!</p>
             ) : (
               files.map((file) => {
                 const isOwner = user?.id === file.uploaderId?._id;
