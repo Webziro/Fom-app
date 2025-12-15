@@ -21,6 +21,7 @@ import {
 import toast from 'react-hot-toast';
 import Button from '../components/common/Button';
 import FolderCreateModal from '../components/folders/FolderCreateModal';
+import { FolderOpen } from 'lucide-react';
 
 const FilesPage = () => {
   const [showUpload, setShowUpload] = useState(false);
@@ -48,6 +49,13 @@ const FilesPage = () => {
     queryKey: ['myFiles', searchTerm],
     queryFn: () => filesAPI.getMyFiles({ search: searchTerm, limit: 50 }),
   });
+
+  const { data: foldersData } = useQuery({
+  queryKey: ['folders'],
+  queryFn: filesAPI.getMyFolders,
+});
+
+const folders = foldersData?.data?.data || [];
 
   const deleteMutation = useMutation({
     mutationFn: filesAPI.deleteFile,
@@ -271,14 +279,6 @@ const FilesPage = () => {
         />
       )}
 
-      {/* Create Folder Modal */}
-      {/* {showCreateFolder && (
-        <CreateFolderModal
-          onSuccess={() => queryClient.invalidateQueries({ queryKey: ['myFiles'] })}
-          onClose={() => setShowCreateFolder(false)}
-        />
-      )} */}
-
       {showCreateFolder && (
         <FolderCreateModal onClose={() => setShowCreateFolder(false)} />
       )}
@@ -321,6 +321,29 @@ const FilesPage = () => {
     </Layout>
   );
 };
+
+{/* Folders Section */}
+{folders.length > 0 && (
+  <div className="mb-8">
+    <h2 className="text-xl font-bold mb-4">My Folders</h2>
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      {folders.map((folder) => (
+        <div
+          key={folder._id}
+          className="bg-white rounded-xl shadow hover:shadow-lg transition-shadow p-6 cursor-pointer border border-gray-200 hover:border-primary-300"
+          onClick={() => navigate(`/folders/${folder._id}`)}  // Later we'll add folder view
+        >
+          <div className="flex items-center gap-3 mb-3">
+            <FolderOpen className="w-10 h-10 text-primary-600" />
+            <h3 className="font-medium text-gray-900">{folder.title}</h3>
+          </div>
+          {folder.description && <p className="text-sm text-gray-600">{folder.description}</p>}
+          <p className="text-xs text-gray-500 mt-3">Created {new Date(folder.createdAt).toLocaleDateString()}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
 
 const formatBytes = (bytes) => {
   if (bytes === 0) return '0 Bytes';
