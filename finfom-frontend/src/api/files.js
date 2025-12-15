@@ -42,6 +42,7 @@ export const filesAPI = {
   // Folder APIs
   createFolder: (data) => axios.post('api/files/folders', data),
   getMyFolders: () => axios.get('api/files/folders'),
+  getFolder: (id) => axios.get(`api/files/folders/${id}`),
   moveFileToFolder: (fileId, folderId) => axios.put(`api/files/${fileId}`, { folderId }),
 
   // getAnalytics: () => axios.get('api/files/analytics')

@@ -16,6 +16,7 @@ import GroupsPage from './pages/GroupsPage';
 import ProfilePage from './pages/ProfilePage';
 import PublicFilePage from './pages/PublicFilePage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import FolderViewPage from './pages/FolderViewPage';
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password/:resettoken" element={<ResetPasswordPage />} />
+            <Route path="/folders/:id" element={<FolderViewPage />} />
             <Route path="/dashboard" element={
               <PrivateRoute><DashboardPage /></PrivateRoute>
             } />
