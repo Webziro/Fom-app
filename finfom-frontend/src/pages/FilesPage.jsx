@@ -21,7 +21,8 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Button from '../components/common/Button';
-import {FolderCreateModal, MoveToFolderModal} from '../components/folders/FolderCreateModal';
+import FolderCreateModal from '../components/folders/FolderCreateModal';
+import MoveToFolderModal from '../components/folders/MoveToFolderModal';
 
 
 //All the usestate and useeffect hooks and other logic
