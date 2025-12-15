@@ -2,6 +2,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { FileText, Home, Upload, FolderOpen, User, LogOut, Menu, X, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
+import { Moon, Sun } from 'lucide-react';
 
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
@@ -21,6 +22,30 @@ const Layout = ({ children }) => {
     { path: '/analytics', icon: TrendingUp, label: 'Analytics' },
     { path: '/profile', icon: User, label: 'Profile' },
   ];
+
+  // Dark mode state and toggle function
+const [darkMode, setDarkMode] = useState(false);
+
+useEffect(() => {
+  if (localStorage.theme === 'dark') {
+    document.documentElement.classList.add('dark');
+    setDarkMode(true);
+  } else {
+    document.documentElement.classList.remove('dark');
+    setDarkMode(false);
+  }
+}, []);
+
+const toggleDarkMode = () => {
+  if (darkMode) {
+    document.documentElement.classList.remove('dark');
+    localStorage.theme = 'light';
+  } else {
+    document.documentElement.classList.add('dark');
+    localStorage.theme = 'dark';
+  }
+  setDarkMode(!darkMode);
+};
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -49,6 +74,14 @@ const Layout = ({ children }) => {
               >
                 <LogOut className="w-5 h-5" />
                 <span className="hidden sm:inline">Logout</span>
+              </button>
+              
+              <button
+                onClick={toggleDarkMode}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+              >
+                {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                <span className="hidden sm:inline">{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
               </button>
             </div>
           </div>
