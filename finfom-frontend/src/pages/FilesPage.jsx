@@ -23,6 +23,7 @@ import toast from 'react-hot-toast';
 import Button from '../components/common/Button';
 import FolderCreateModal from '../components/folders/FolderCreateModal';
 import MoveToFolderModal from '../components/folders/MoveToFolderModal';
+import { useParams } from 'react-router-dom';
 
 
 //All the usestate and useeffect hooks and other logic
@@ -36,6 +37,7 @@ const FilesPage = () => {
   const menuRef = useRef(null);
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [moveFile, setMoveFile] = useState(null);
+  const { folderId } = useParams();
 
 
   // Close menu when clicking outside
@@ -45,24 +47,24 @@ const FilesPage = () => {
         setOpenMenuId(null);
       }
     };
-
-    document.addEventListener('mousedown', handleClickOutside);
+  document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   // Fetch files with react-query
   const { data, isLoading } = useQuery({
-    queryKey: ['myFiles', searchTerm],
+    queryKey: ['myFiles', searchTerm, folderId],
     queryFn: () => filesAPI.getMyFiles({ search: searchTerm, limit: 50 }),
+     folderId: folderId || null
   });
 
   // Fetch folders with react-query
-    const { data: foldersData } = useQuery({
-      queryKey: ['folders'],
-      queryFn: filesAPI.getMyFolders,
-    });
+  const { data: foldersData } = useQuery({
+    queryKey: ['folders'],
+    queryFn: filesAPI.getMyFolders,
+  });
 
-    const folders = foldersData?.data?.data || [];
+  const folders = foldersData?.data?.data || [];
 
   // Delete mutation for files
   const deleteMutation = useMutation({
