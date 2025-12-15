@@ -173,7 +173,7 @@ const FilesPage = () => {
               {folders.map((folder) => (
                 <div
                   key={folder._id}
-                  className="bg-white rounded-xl shadow hover:shadow-lg transition-shadow p-6 border border-gray-200 hover:border-primary-300 relative group"
+                  className="bg-white dark:bg-gray-800 rounded-xl shadow hover:shadow-lg transition-shadow p-6 border border-gray-200 hover:border-primary-300 relative group"
                 >
                   {/* Three-Dots Button */}
                   <div className="absolute top-2 right-2 z-10">
@@ -240,7 +240,7 @@ const FilesPage = () => {
               </button>
 
             {isMenuOpen && (
-  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-10">
+  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border z-10">
     {/* Share Button */}
     <button
       onClick={(e) => {

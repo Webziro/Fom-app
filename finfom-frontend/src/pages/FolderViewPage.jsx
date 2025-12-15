@@ -80,19 +80,19 @@ const FolderViewPage = () => {
           Back to My Files
         </Link>
 
-        <h1 className="text-3xl font-bold mb-8 flex items-center gap-3">
+        <h1 className="text-gray-900 dark:text-white text-3xl font-bold mb-8 flex items-center gap-3">
           <FolderOpen className="w-10 h-10 text-primary-600" />
           {folder?.title || 'Folder'}
         </h1>
 
         {files.length === 0 ? (
-          <p className="text-center text-gray-500 py-20">This folder is empty</p>
+          <p className="text-center text-gray-500 py-20 text-gray-600 dark:text-gray-300">This folder is empty</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {files.map((file) => {
               const isMenuOpen = openMenuId === file._id;
               return (
-                <div key={file._id} className="bg-white rounded-xl shadow hover:shadow-lg p-6 cursor-pointer" onClick={() => setPreviewFile(file)}>
+                <div key={file._id} className="bg-white dark:bg-gray-800 rounded-xl shadow hover:shadow-lg p-6 cursor-pointer" onClick={() => setPreviewFile(file)}>
                   <div className="flex items-start justify-between mb-3">
                     <FileText className="w-8 h-8 text-primary-600" />
                     <div className="relative" ref={isMenuOpen ? menuRef : null} onClick={(e) => e.stopPropagation()}>
@@ -117,7 +117,7 @@ const FolderViewPage = () => {
                     </div>
                   </div>
                   <h3 className="font-semibold text-gray-900 mb-1 truncate">{file.title}</h3>
-                  {file.description && <p className="text-sm text-gray-600 mb-3 line-clamp-2">{file.description}</p>}
+                  {file.description && <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 line-clamp-2 ">{file.description}</p>}
                   <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
                     <span>{formatBytes(file.size)}</span>
                     <span className={`px-2 py-1 rounded text-xs ${file.visibility === 'public' ? 'bg-green-100 text-green-700' : file.visibility === 'password' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}`}>
