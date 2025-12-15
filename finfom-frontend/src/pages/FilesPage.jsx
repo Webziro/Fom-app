@@ -21,8 +21,10 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Button from '../components/common/Button';
-import FolderCreateModal from '../components/folders/FolderCreateModal';
+import {FolderCreateModal, MoveToFolderModal} from '../components/folders/FolderCreateModal';
 
+
+//All the usestate and useeffect hooks and other logic
 const FilesPage = () => {
   const [showUpload, setShowUpload] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -32,6 +34,8 @@ const FilesPage = () => {
   const { user } = useContext(AuthContext);
   const menuRef = useRef(null);
   const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const [moveFile, setMoveFile] = useState(null);
+
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -45,18 +49,22 @@ const FilesPage = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Fetch files with react-query
   const { data, isLoading } = useQuery({
     queryKey: ['myFiles', searchTerm],
     queryFn: () => filesAPI.getMyFiles({ search: searchTerm, limit: 50 }),
   });
 
+  // Fetch folders with react-query
   const { data: foldersData } = useQuery({
-  queryKey: ['folders'],
-  queryFn: filesAPI.getMyFolders,
-});
+    queryKey: ['folders'],
+    queryFn: filesAPI.getMyFolders,
+  });
 
-const folders = foldersData?.data?.data || [];
+  // Extract folders or default to empty array
+  const folders = foldersData?.data?.data || [];
 
+  // Delete mutation for files
   const deleteMutation = useMutation({
     mutationFn: filesAPI.deleteFile,
     onSuccess: () => {
@@ -68,7 +76,6 @@ const folders = foldersData?.data?.data || [];
       toast.error(error.response?.data?.message || 'Failed to delete file');
     },
   });
-
   const files = data?.data?.data || [];
 
   // New state for Share Modal
