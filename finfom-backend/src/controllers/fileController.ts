@@ -50,25 +50,40 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 
     const { buffer, originalname, mimetype, size } = req.file;
 
-    // Calculate hash
+    // Calculate hash for global deduplication
     const fileHash = calculateFileHash(buffer);
 
-    // Debug logs
-    console.log('Upload hash check:');
-    console.log('fileHash:', fileHash);
-    console.log('uploaderId:', req.user._id.toString());
-
-    // 1. Check for versioning (same content, same user → new version)
-    const existingFileForVersion = await File.findOne({
+    // 1. Global duplicate check (same content — any user — block to save space)
+    const duplicateFile = await File.findOne({
       fileHash,
+      size,
+      fileType: mimetype,
+    });
+
+    if (duplicateFile) {
+      console.log(`[DUPLICATE] File already exists: ${fileHash}`);
+      return res.status(200).json({
+        success: true,
+        data: duplicateFile,
+        message: 'File content already exists in the system. Using existing file.',
+        isDuplicate: true,
+        link: duplicateFile.secureUrl,
+      });
+    }
+
+    // 2. Versioning: same title, same user, same group
+    const finalTitle = (title?.trim() || originalname).trim();
+
+    const existingFileForVersion = await File.findOne({
+      title: finalTitle,
       uploaderId: req.user._id,
+      groupId,
     });
 
     if (existingFileForVersion) {
-      console.log(`New version detected for file ${existingFileForVersion._id}. Old version: ${existingFileForVersion.currentVersion || 1}`);
+      console.log(`New version detected for file "${finalTitle}" (ID: ${existingFileForVersion._id})`);
 
       const newVersionNumber = (existingFileForVersion.currentVersion || 1) + 1;
-      const finalTitle = (title?.trim() || originalname).trim();
 
       const uploadStream = cloudinary.uploader.upload_stream(
         { folder: 'finfom-uploads', resource_type: mimetype.startsWith('image/') ? 'image' : 'raw' },
@@ -98,7 +113,6 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
             existingFileForVersion.secureUrl = result.secure_url;
             existingFileForVersion.size = size;
             existingFileForVersion.fileType = mimetype;
-            existingFileForVersion.title = finalTitle;
             existingFileForVersion.description = description.trim();
             existingFileForVersion.updatedAt = new Date();
 
@@ -122,29 +136,11 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
       stream.push(null);
       stream.pipe(uploadStream);
 
-      return; // Stop execution — version handled
-    }
-
-    // 2. Check for global duplicate (same content — different user — block to save space)
-    const duplicateFile = await File.findOne({
-      fileHash,
-      size,
-      fileType: mimetype,
-    });
-
-    if (duplicateFile) {
-      console.log(`[DUPLICATE] File already exists (different user): ${fileHash}`);
-      return res.status(200).json({
-        success: true,
-        data: duplicateFile,
-        message: 'File content already exists in the system. Using existing file.',
-        isDuplicate: true,
-        link: duplicateFile.secureUrl,
-      });
+      return; // Stop normal upload
     }
 
     // 3. Normal new file upload
-    console.log('Uploading new file (no duplicate found)');
+    console.log('Uploading new file (no duplicate or version found)');
 
     const finalTitle = (title?.trim() || originalname).trim();
 
@@ -209,7 +205,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
   }
 };
 
-//
+// Get user's files with pagination and search function
 export const getMyFiles = async (req: AuthRequest, res: Response) => {
   try {
     const { page = 1, limit = 10, search, folderId } = req.query;
