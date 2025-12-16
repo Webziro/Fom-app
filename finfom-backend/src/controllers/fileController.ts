@@ -66,18 +66,23 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // NEW: Check if a file with the same title exists (for versioning)
-  const existingFileForVersion = await File.findOne({
+console.log('Checking for existing file by hash...');
+console.log('Current fileHash:', fileHash);
+console.log('Uploader ID:', req.user._id.toString());
+
+// NEW: Check if a file with the same title exists (for versioning)
+const existingFileForVersion = await File.findOne({
   fileHash,
   uploaderId: req.user._id,
-  // Optional: same group/folder if you want stricter matching
-  // groupId,
-  // folderId: req.body.folderId || null,
 });
 
 if (existingFileForVersion) {
+  console.log(`New version detected for file ${existingFileForVersion._id}. Old version: ${existingFileForVersion.currentVersion || 1}`);
+
   // This is a new version of an existing file (same content)
   const newVersionNumber = (existingFileForVersion.currentVersion || 1) + 1;
+
+  const finalTitle = (title?.trim() || originalname).trim();
 
   const uploadStream = cloudinary.uploader.upload_stream(
     { folder: 'finfom-uploads', resource_type: mimetype.startsWith('image/') ? 'image' : 'raw' },
@@ -530,9 +535,6 @@ export const getAnalytics = async (req: AuthRequest, res: Response) => {
     // CAST user ID FIRST (before using it)
     const userId = new mongoose.Types.ObjectId(req.user._id);
 
-    // console.log('Authenticated user ID:', req.user._id);
-    // console.log('Cast user ID:', userId.toString());
-       //console.log('Found files count:', files.length);
 
     const files = await File.find({ uploaderId: userId });
  
