@@ -123,13 +123,12 @@ const handleSubmit = async (e) => {
   }
 
   try {
-    const response = await filesAPI.uploadFile(uploadData);  // or axios.post
+    const response = await filesAPI.uploadFile(uploadData); 
 
-    // ← MOVE THE TOAST HERE, AFTER response is defined
-    if (response.data.isNewVersion) {
-      toast.success(
-        response.data.message || `New version uploaded (v${response.data.data.currentVersion})`
-      );
+  if (response.data.isNewVersion) {
+  toast.success(
+      response.data.message || `New version uploaded (v${response.data.data.currentVersion})`
+    );
     } else {
       toast.success(response.data.message || 'File uploaded successfully!');
     }
