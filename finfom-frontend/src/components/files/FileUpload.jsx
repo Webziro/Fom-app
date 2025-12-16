@@ -123,19 +123,20 @@ const handleSubmit = async (e) => {
   }
 
   try {
-    const response = await filesAPI.uploadFile(uploadData); 
+  const response = await filesAPI.uploadFile(uploadData);
 
+  // <-- INSERT THE CONDITIONAL TOAST HERE
   if (response.data.isNewVersion) {
-  toast.success(
+    toast.success(
       response.data.message || `New version uploaded (v${response.data.data.currentVersion})`
     );
-    } else {
-      toast.success(response.data.message || 'File uploaded successfully!');
-    }
+  } else {
+    toast.success(response.data.message || 'File uploaded successfully!');
+  }
 
-    // Reset form and close
-    onSuccess?.(response.data.data);
-    onClose();
+  // Reset form and close
+  onSuccess?.(response.data.data);
+  onClose();
   } catch (error) {
     toast.error(error.response?.data?.message || 'Upload failed');
   } finally {
