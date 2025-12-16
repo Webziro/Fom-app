@@ -120,19 +120,19 @@ const FileSchema = new Schema<IFile>({
   type: Number,
   default: 1,
 },
-  versions: [
-    {
-      versionNumber: { type: Number, required: true },
-          uploadedAt: { type: Date, default: Date.now },
-          uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-          cloudinaryId: { type: String, required: true },
-          url: { type: String, required: true },
-          secureUrl: { type: String, required: true },
-          size: { type: Number, required: true },
-          fileType: { type: String, required: true },
-      _id: false // Prevents Mongoose from creating an extra _id for subdocuments
-    }
-  ],
+versions: {
+  type: [{
+    versionNumber: { type: Number, required: true },
+    uploadedAt: { type: Date, default: Date.now },
+    uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    cloudinaryId: { type: String, required: true },
+    url: { type: String, required: true },
+    secureUrl: { type: String, required: true },
+    size: { type: Number, required: true },
+    fileType: { type: String, required: true },
+  }],
+  default: [],
+},
 
 }, {
   timestamps: true
