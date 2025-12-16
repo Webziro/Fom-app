@@ -18,193 +18,193 @@ const calculateFileHash = (buffer: Buffer): string => {
 };
 
 export const uploadFile = async (req: AuthRequest, res: Response) => {
-  try {
-    // Basic validation
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded' });
-    }
-
-    if (!req.user) {
-      return res.status(401).json({ success: false, message: 'User not authenticated' });
-    }
-
-    const { title, description, groupId, visibility = 'private', password } = req.body;
-
-    // Validate required fields
-    if (!groupId) {
-      return res.status(400).json({ success: false, message: 'Group selection is required' });
-    }
-
-    if (!description || description.trim() === '') {
-      return res.status(400).json({ success: false, message: 'File description is required' });
-    }
-
-    // Verify the group exists
-    const group = await Group.findById(groupId);
-    if (!group) {
-      return res.status(404).json({ success: false, message: 'Selected group does not exist' });
-    }
-
-    const { buffer, originalname, mimetype, size } = req.file;
-
-    // Check for duplicate file content
-    const fileHash = calculateFileHash(buffer);
-    const existingFile = await File.findOne({
-      fileHash,
-      size,
-      fileType: mimetype,
-    });
-
-    if (existingFile) {
-      console.log(`[DUPLICATE] File already exists: ${fileHash}`);
-      return res.status(200).json({
-        success: true,
-        data: existingFile,
-        message: 'File content already exists in the system. Using existing file.',
-        isDuplicate: true,
-        link: existingFile.secureUrl,
-      });
-    }
-
-console.log('Checking for existing file by hash...');
-console.log('Current fileHash:', fileHash);
-console.log('Uploader ID:', req.user._id.toString());
-
-// NEW: Check if a file with the same title exists (for versioning)
-const existingFileForVersion = await File.findOne({
-  fileHash,
-  uploaderId: req.user._id,
-});
-
-if (existingFileForVersion) {
-  console.log(`New version detected for file ${existingFileForVersion._id}. Old version: ${existingFileForVersion.currentVersion || 1}`);
-
-  // This is a new version of an existing file (same content)
-  const newVersionNumber = (existingFileForVersion.currentVersion || 1) + 1;
-
-  const finalTitle = (title?.trim() || originalname).trim();
-
-  const uploadStream = cloudinary.uploader.upload_stream(
-    { folder: 'finfom-uploads', resource_type: mimetype.startsWith('image/') ? 'image' : 'raw' },
-    async (error, result) => {
-      if (error || !result) {
-        return res.status(500).json({ success: false, message: 'Cloudinary upload failed' });
-      }
-
-      try {
-        // Save old version
-        existingFileForVersion.versions.push({
-          versionNumber: existingFileForVersion.currentVersion || 1,
-          uploadedAt: new Date(),
-          uploadedBy: req.user._id,
-          cloudinaryId: existingFileForVersion.cloudinaryId,
-          url: existingFileForVersion.url,
-          secureUrl: existingFileForVersion.secureUrl,
-          size: existingFileForVersion.size,
-          fileType: existingFileForVersion.fileType,
-        });
-
-        // Update current
-        existingFileForVersion.currentVersion = newVersionNumber;
-        existingFileForVersion.cloudinaryId = result.public_id;
-        existingFileForVersion.url = result.url;
-        existingFileForVersion.secureUrl = result.secure_url;
-        existingFileForVersion.size = size;
-        existingFileForVersion.fileType = mimetype;
-        existingFileForVersion.title = finalTitle;  // Update title if changed
-        existingFileForVersion.description = description.trim();
-        existingFileForVersion.updatedAt = new Date();
-
-        await existingFileForVersion.save();
-
-        res.status(200).json({
-          success: true,
-          data: existingFileForVersion,
-          message: `New version uploaded (v${newVersionNumber})`,
-          isNewVersion: true,
-        });
-      } catch (dbError: any) {
-        await cloudinary.uploader.destroy(result.public_id).catch(() => {});
-        res.status(500).json({ success: false, message: 'Failed to save version' });
-      }
+  try {
+    // Basic validation
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
-  );
 
-  const stream = new Readable();
-  stream.push(buffer);
-  stream.push(null);
-  stream.pipe(uploadStream);
-  return;
-}
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'User not authenticated' });
+    }
 
-    // Upload to Cloudinary using stream
-    const uploadStream = cloudinary.uploader.upload_stream(
-      
-      { 
-        folder: 'finfom-uploads', 
-        resource_type: mimetype.startsWith('image/') ? 'image' : 'raw'  // ✅ Explicit type
-      },
-      async (error, result) => {
-        if (error || !result) {
-          console.error('Cloudinary upload failed:', error);
-          return res.status(500).json({
-            success: false,
-            message: 'Failed to upload to Cloudinary',
-            error: error?.message,
-          });
-        }
+    const { title, description, groupId, visibility = 'private', password } = req.body;
 
-        try {
-          const finalTitle = (title?.trim() || originalname).trim();
+    // Validate required fields
+    if (!groupId) {
+      return res.status(400).json({ success: false, message: 'Group selection is required' });
+    }
 
-          const newFile = await File.create({
-            title: finalTitle,
-            description: description.trim(),
-            groupId,
-            visibility,
-            password: visibility === 'password' ? password : null,
-            size,
-            fileType: mimetype,
-            fileHash,
-            uploaderId: req.user._id,
-            cloudinaryId: result.public_id,
-            url: result.url,
-            secureUrl: result.secure_url,
-          });
+    if (!description || description.trim() === '') {
+      return res.status(400).json({ success: false, message: 'File description is required' });
+    }
 
-          res.status(201).json({
-            success: true,
-            data: newFile,
-            message: 'File uploaded and saved successfully!',
-          });
-        } catch (dbError: any) {
-          // Rollback: delete from Cloudinary if database save fails
-          await cloudinary.uploader.destroy(result.public_id).catch(() => { });
-          return res.status(500).json({
-            success: false,
-            message: 'Failed to save new file metadata to database',
-            error: dbError.message,
-          });
-        }
-      }
-    );
+    // Verify the group exists
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ success: false, message: 'Selected group does not exist' });
+    }
 
-    // Stream the buffer to Cloudinary
-    const stream = new Readable();
-    stream.push(buffer);
-    stream.push(null);
-    stream.pipe(uploadStream);
+    const { buffer, originalname, mimetype, size } = req.file;
 
-  } catch (error: any) {
-    console.error('Upload controller error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error during upload',
-      error: error.message,
-    });
-  }
+    // Calculate hash
+    const fileHash = calculateFileHash(buffer);
+
+    // 1. Check for exact duplicate (same hash, size, type) — block upload
+    const duplicateFile = await File.findOne({
+      fileHash,
+      size,
+      fileType: mimetype,
+    });
+
+    if (duplicateFile) {
+      console.log(`[DUPLICATE] File already exists: ${fileHash}`);
+      return res.status(200).json({
+        success: true,
+        data: duplicateFile,
+        message: 'File content already exists in the system. Using existing file.',
+        isDuplicate: true,
+        link: duplicateFile.secureUrl,
+      });
+    }
+
+    // 2. Check for versioning (same content, same user — allow new version)
+    console.log('Checking for versioning...');
+    console.log('Current fileHash:', fileHash);
+    console.log('Uploader ID:', req.user._id.toString());
+
+    const existingFileForVersion = await File.findOne({
+      fileHash,
+      uploaderId: req.user._id,
+    });
+
+    if (existingFileForVersion) {
+      console.log(`New version detected for file ${existingFileForVersion._id}. Old version: ${existingFileForVersion.currentVersion || 1}`);
+
+      const newVersionNumber = (existingFileForVersion.currentVersion || 1) + 1;
+      const finalTitle = (title?.trim() || originalname).trim();
+
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { folder: 'finfom-uploads', resource_type: mimetype.startsWith('image/') ? 'image' : 'raw' },
+        async (error, result) => {
+          if (error || !result) {
+            console.error('Cloudinary upload failed:', error);
+            return res.status(500).json({ success: false, message: 'Failed to upload new version' });
+          }
+
+          try {
+            // Save old current version to history
+            existingFileForVersion.versions.push({
+              versionNumber: existingFileForVersion.currentVersion || 1,
+              uploadedAt: new Date(),
+              uploadedBy: req.user._id,
+              cloudinaryId: existingFileForVersion.cloudinaryId,
+              url: existingFileForVersion.url,
+              secureUrl: existingFileForVersion.secureUrl,
+              size: existingFileForVersion.size,
+              fileType: existingFileForVersion.fileType,
+            });
+
+            // Update current version
+            existingFileForVersion.currentVersion = newVersionNumber;
+            existingFileForVersion.cloudinaryId = result.public_id;
+            existingFileForVersion.url = result.url;
+            existingFileForVersion.secureUrl = result.secure_url;
+            existingFileForVersion.size = size;
+            existingFileForVersion.fileType = mimetype;
+            existingFileForVersion.title = finalTitle;
+            existingFileForVersion.description = description.trim();
+            existingFileForVersion.updatedAt = new Date();
+
+            await existingFileForVersion.save();
+
+            res.status(200).json({
+              success: true,
+              data: existingFileForVersion,
+              message: `New version uploaded (v${newVersionNumber})`,
+              isNewVersion: true,
+            });
+          } catch (dbError: any) {
+            await cloudinary.uploader.destroy(result.public_id).catch(() => {});
+            res.status(500).json({ success: false, message: 'Failed to save new version' });
+          }
+        }
+      );
+
+      const stream = new Readable();
+      stream.push(buffer);
+      stream.push(null);
+      stream.pipe(uploadStream);
+      return; // Stop execution — version handled
+    }
+
+    // 3. Normal new file upload (no duplicate, no version)
+    console.log('Uploading new file...');
+
+    const finalTitle = (title?.trim() || originalname).trim();
+
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { folder: 'finfom-uploads', resource_type: mimetype.startsWith('image/') ? 'image' : 'raw' },
+      async (error, result) => {
+        if (error || !result) {
+          console.error('Cloudinary upload failed:', error);
+          return res.status(500).json({
+            success: false,
+            message: 'Failed to upload to Cloudinary',
+            error: error?.message,
+          });
+        }
+
+        try {
+          const newFile = await File.create({
+            title: finalTitle,
+            description: description.trim(),
+            groupId,
+            visibility,
+            password: visibility === 'password' ? password : null,
+            size,
+            fileType: mimetype,
+            fileHash,
+            uploaderId: req.user._id,
+            cloudinaryId: result.public_id,
+            url: result.url,
+            secureUrl: result.secure_url,
+            currentVersion: 1,
+            versions: [],
+          });
+
+          res.status(201).json({
+            success: true,
+            data: newFile,
+            message: 'File uploaded and saved successfully!',
+          });
+        } catch (dbError: any) {
+          await cloudinary.uploader.destroy(result.public_id).catch(() => {});
+          res.status(500).json({
+            success: false,
+            message: 'Failed to save new file metadata',
+            error: dbError.message,
+          });
+        }
+      }
+    );
+
+    const stream = new Readable();
+    stream.push(buffer);
+    stream.push(null);
+    stream.pipe(uploadStream);
+
+  } catch (error: any) {
+    console.error('Upload controller error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during upload',
+      error: error.message,
+    });
+  }
 };
 
+// Get paginated list of user's files
 export const getMyFiles = async (req: AuthRequest, res: Response) => {
   try {
     const { page = 1, limit = 10, search, folderId } = req.query;
