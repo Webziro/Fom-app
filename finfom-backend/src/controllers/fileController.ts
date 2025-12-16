@@ -19,18 +19,42 @@ const calculateFileHash = (buffer: Buffer): string => {
 
 export const uploadFile = async (req: AuthRequest, res: Response) => {
   try {
-    // ... your existing validation and group check ...
+    // Basic validation
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'User not authenticated' });
+    }
+
+    const { title, description, groupId, visibility = 'private', password } = req.body;
+
+    // Validate required fields
+    if (!groupId) {
+      return res.status(400).json({ success: false, message: 'Group selection is required' });
+    }
+
+    if (!description || description.trim() === '') {
+      return res.status(400).json({ success: false, message: 'File description is required' });
+    }
+
+    // Verify the group exists
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ success: false, message: 'Selected group does not exist' });
+    }
 
     const { buffer, originalname, mimetype, size } = req.file;
 
+    // Calculate hash
     const fileHash = calculateFileHash(buffer);
-    const finalTitle = (title?.trim() || originalname).trim();
 
-    // 1. Check for versioning (same hash, same user — trigger version)
-    console.log('Checking for versioning...');
+    console.log('Upload hash check:');
     console.log('fileHash:', fileHash);
     console.log('uploaderId:', req.user._id.toString());
 
+    // 1. Check for versioning (same content, same user — allow new version)
     const existingFileForVersion = await File.findOne({
       fileHash,
       uploaderId: req.user._id,
@@ -39,17 +63,19 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
     if (existingFileForVersion) {
       console.log(`New version detected for file ${existingFileForVersion._id}. Old version: ${existingFileForVersion.currentVersion || 1}`);
 
-      // New version code (your existing block)
       const newVersionNumber = (existingFileForVersion.currentVersion || 1) + 1;
+      const finalTitle = (title?.trim() || originalname).trim();
 
       const uploadStream = cloudinary.uploader.upload_stream(
         { folder: 'finfom-uploads', resource_type: mimetype.startsWith('image/') ? 'image' : 'raw' },
         async (error, result) => {
           if (error || !result) {
-            return res.status(500).json({ success: false, message: 'Cloudinary upload failed' });
+            console.error('Cloudinary upload failed:', error);
+            return res.status(500).json({ success: false, message: 'Failed to upload new version' });
           }
 
           try {
+            // Save old version to history
             existingFileForVersion.versions.push({
               versionNumber: existingFileForVersion.currentVersion || 1,
               uploadedAt: new Date(),
@@ -61,6 +87,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
               fileType: existingFileForVersion.fileType,
             });
 
+            // Update current
             existingFileForVersion.currentVersion = newVersionNumber;
             existingFileForVersion.cloudinaryId = result.public_id;
             existingFileForVersion.url = result.url;
@@ -94,7 +121,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
       return; // Stop — version handled
     }
 
-    // 2. Check for global duplicate (same hash, size, type — any user)
+    // 2. Check for global duplicate (same content — different user — block to save space)
     const duplicateFile = await File.findOne({
       fileHash,
       size,
@@ -102,7 +129,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
     });
 
     if (duplicateFile) {
-      console.log(`[DUPLICATE] File already exists: ${fileHash}`);
+      console.log(`[DUPLICATE] File already exists (different user): ${fileHash}`);
       return res.status(200).json({
         success: true,
         data: duplicateFile,
@@ -112,14 +139,73 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // 3. Normal new upload
-    // ... your existing normal upload code ...
+    // 3. Normal new file upload
+    console.log('Uploading new file (no duplicate found)');
+
+    const finalTitle = (title?.trim() || originalname).trim();
+
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { folder: 'finfom-uploads', resource_type: mimetype.startsWith('image/') ? 'image' : 'raw' },
+      async (error, result) => {
+        if (error || !result) {
+          console.error('Cloudinary upload failed:', error);
+          return res.status(500).json({
+            success: false,
+            message: 'Failed to upload to Cloudinary',
+            error: error?.message,
+          });
+        }
+
+        try {
+          const newFile = await File.create({
+            title: finalTitle,
+            description: description.trim(),
+            groupId,
+            visibility,
+            password: visibility === 'password' ? password : null,
+            size,
+            fileType: mimetype,
+            fileHash,
+            uploaderId: req.user._id,
+            cloudinaryId: result.public_id,
+            url: result.url,
+            secureUrl: result.secure_url,
+            currentVersion: 1,
+            versions: [],
+          });
+
+          res.status(201).json({
+            success: true,
+            data: newFile,
+            message: 'File uploaded and saved successfully!',
+          });
+        } catch (dbError: any) {
+          await cloudinary.uploader.destroy(result.public_id).catch(() => {});
+          res.status(500).json({
+            success: false,
+            message: 'Failed to save new file metadata to database',
+            error: dbError.message,
+          });
+        }
+      }
+    );
+
+    const stream = new Readable();
+    stream.push(buffer);
+    stream.push(null);
+    stream.pipe(uploadStream);
+
   } catch (error: any) {
     console.error('Upload controller error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({
+      success: false,
+      message: 'Server error during upload',
+      error: error.message,
+    });
   }
 };
-// Get paginated list of user's files
+
+//
 export const getMyFiles = async (req: AuthRequest, res: Response) => {
   try {
     const { page = 1, limit = 10, search, folderId } = req.query;
