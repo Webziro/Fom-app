@@ -53,6 +53,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
     // Calculate hash
     const fileHash = calculateFileHash(buffer);
 
+    // Log for debugging
     console.log('Upload hash check:');
     console.log('fileHash:', fileHash);
     console.log('uploaderId:', req.user._id.toString());
@@ -121,7 +122,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
       stream.push(null);
       stream.pipe(uploadStream);
 
-      return; // Stop — version handled
+      return; // Stop execution — version handled
     }
 
     // 2. Check for global duplicate (same content — different user — block to save space)
