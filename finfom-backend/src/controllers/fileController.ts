@@ -77,11 +77,11 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 
       try {
         // FIX: Initialize versions if undefined (for old files)
+      // Save old version to history
         if (!existingFileForVersion.versions) {
-          existingFileForVersion.versions = [];
+          existingFileForVersion.versions = [];  // Initialize if undefined
         }
 
-        // Save old version
         existingFileForVersion.versions.push({
           versionNumber: existingFileForVersion.currentVersion || 1,
           uploadedAt: new Date(),
