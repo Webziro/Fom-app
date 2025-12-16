@@ -53,12 +53,12 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
     // Calculate hash
     const fileHash = calculateFileHash(buffer);
 
-    // Log for debugging
+    // Debug logs
     console.log('Upload hash check:');
     console.log('fileHash:', fileHash);
     console.log('uploaderId:', req.user._id.toString());
 
-    // 1. Check for versioning (same content, same user — allow new version)
+    // 1. Check for versioning (same content, same user → new version)
     const existingFileForVersion = await File.findOne({
       fileHash,
       uploaderId: req.user._id,
@@ -79,7 +79,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
           }
 
           try {
-            // Save old version to history
+            // Save old current version to history
             existingFileForVersion.versions.push({
               versionNumber: existingFileForVersion.currentVersion || 1,
               uploadedAt: new Date(),
@@ -91,7 +91,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
               fileType: existingFileForVersion.fileType,
             });
 
-            // Update current
+            // Update current version
             existingFileForVersion.currentVersion = newVersionNumber;
             existingFileForVersion.cloudinaryId = result.public_id;
             existingFileForVersion.url = result.url;
