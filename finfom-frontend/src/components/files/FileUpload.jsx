@@ -110,6 +110,7 @@ const handleSubmit = async (e) => {
     return toast.error('Description is required');
   }
 
+
   setUploading(true);
   const uploadData = new FormData();
   uploadData.append('file', file);
@@ -125,7 +126,12 @@ const handleSubmit = async (e) => {
   try {
   const response = await filesAPI.uploadFile(uploadData);
 
-  // <-- INSERT THE CONDITIONAL TOAST HERE
+  if (response.data.isNewVersion) {
+  toast.success(`New version uploaded (v${response.data.data.currentVersion})`);
+  } else {
+    toast.success('File uploaded successfully!');
+  }
+
   if (response.data.isNewVersion) {
     toast.success(
       response.data.message || `New version uploaded (v${response.data.data.currentVersion})`

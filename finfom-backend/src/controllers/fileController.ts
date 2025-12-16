@@ -17,6 +17,9 @@ const calculateFileHash = (buffer: Buffer): string => {
   return crypto.createHash('md5').update(buffer).digest('hex');
 };
 
+
+// Upload file controller with versioning and duplicate detection
+
 export const uploadFile = async (req: AuthRequest, res: Response) => {
   try {
     // Basic validation

@@ -32,6 +32,9 @@ export interface IFile extends Document {
   expiresAt?: Date;
   folderId?: mongoose.Types.ObjectId;
   
+  // NEW: Content Hash field
+  fileHash: string; 
+
   // NEW: Version control fields
   versions: IVersion[]; 
   currentVersion: number;
@@ -107,23 +110,30 @@ const FileSchema = new Schema<IFile>({
     type: Number,
     default: 0
   },
+  // --- NEW FIELD ---
+  fileHash: {
+    type: String,
+    required: true,
+    index: true
+  },
+  currentVersion: {
+  type: Number,
+  default: 1,
+},
   versions: [
     {
       versionNumber: { type: Number, required: true },
-      uploadedAt: { type: Date, default: Date.now },
-      uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-      cloudinaryId: { type: String, required: true },
-      url: { type: String, required: true },
-      secureUrl: { type: String, required: true },
-      size: { type: Number, required: true },
-      fileType: { type: String, required: true },
+          uploadedAt: { type: Date, default: Date.now },
+          uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+          cloudinaryId: { type: String, required: true },
+          url: { type: String, required: true },
+          secureUrl: { type: String, required: true },
+          size: { type: Number, required: true },
+          fileType: { type: String, required: true },
       _id: false // Prevents Mongoose from creating an extra _id for subdocuments
     }
   ],
-  currentVersion: { 
-    type: Number, 
-    default: 1 
-  }
+
 }, {
   timestamps: true
 });
