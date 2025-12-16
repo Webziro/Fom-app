@@ -122,24 +122,15 @@ const FileUpload = ({ onSuccess, onClose }) => {
       uploadData.append('password', formData.password);
     }
 
-    try {
-      await filesAPI.uploadFile(uploadData);
-      toast.success('File uploaded successfully!');
-      onSuccess();
-      onClose();
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Upload failed');
-    } finally {
-      setUploading(false);
+    if (response.data.isNewVersion) {
+      toast.success(
+      response.data.message || `New version uploaded (v${response.data.data.currentVersion})`
+    );
+    } else {
+      toast.success(response.data.message || 'File uploaded successfully!');
     }
   };
   
-  // After upload success
-  if (response.data.isNewVersion) {
-    toast.success(response.data.message || `New version uploaded (v${response.data.data.currentVersion})`);
-  } else {
-    toast.success(response.data.message || 'File uploaded successfully!');
-  }
 
   return (
     <div className="fixed inset-0 bg-black  bg-opacity-50 flex items-center justify-center p-4 z-50">
