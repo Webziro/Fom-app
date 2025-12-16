@@ -67,83 +67,70 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
     }
 
     // NEW: Check if a file with the same title exists (for versioning)
-    const finalTitle = (title?.trim() || originalname).trim();
-    const existingFileByTitle = await File.findOne({
-      title: finalTitle,
-      uploaderId: req.user._id,
-      groupId,
-      folderId: req.body.folderId || null,  // optional: same folder
-    });
+  const existingFileForVersion = await File.findOne({
+  fileHash,
+  uploaderId: req.user._id,
+  // Optional: same group/folder if you want stricter matching
+  // groupId,
+  // folderId: req.body.folderId || null,
+});
 
-    if (existingFileByTitle) {
-      // This is a new version of an existing file
-      const newVersionNumber = (existingFileByTitle.currentVersion || 1) + 1;
+if (existingFileForVersion) {
+  // This is a new version of an existing file (same content)
+  const newVersionNumber = (existingFileForVersion.currentVersion || 1) + 1;
 
-      // Upload new version to Cloudinary
-      const uploadStream = cloudinary.uploader.upload_stream(
-        { 
-          folder: 'finfom-uploads', 
-          resource_type: mimetype.startsWith('image/') ? 'image' : 'raw'
-        },
-        async (error, result) => {
-          if (error || !result) {
-            console.error('Cloudinary upload failed:', error);
-            return res.status(500).json({
-              success: false,
-              message: 'Failed to upload new version to Cloudinary',
-            });
-          }
+  const uploadStream = cloudinary.uploader.upload_stream(
+    { folder: 'finfom-uploads', resource_type: mimetype.startsWith('image/') ? 'image' : 'raw' },
+    async (error, result) => {
+      if (error || !result) {
+        return res.status(500).json({ success: false, message: 'Cloudinary upload failed' });
+      }
 
-          try {
-            // Add old current version to history
-            existingFileByTitle.versions.push({
-              versionNumber: existingFileByTitle.currentVersion || 1,
-              uploadedAt: new Date(),
-              uploadedBy: req.user._id,
-              cloudinaryId: existingFileByTitle.cloudinaryId,
-              url: existingFileByTitle.url,
-              secureUrl: existingFileByTitle.secureUrl,
-              size: existingFileByTitle.size,
-              fileType: existingFileByTitle.fileType,
-            });
+      try {
+        // Save old version
+        existingFileForVersion.versions.push({
+          versionNumber: existingFileForVersion.currentVersion || 1,
+          uploadedAt: new Date(),
+          uploadedBy: req.user._id,
+          cloudinaryId: existingFileForVersion.cloudinaryId,
+          url: existingFileForVersion.url,
+          secureUrl: existingFileForVersion.secureUrl,
+          size: existingFileForVersion.size,
+          fileType: existingFileForVersion.fileType,
+        });
 
-            // Update current version
-            existingFileByTitle.currentVersion = newVersionNumber;
-            existingFileByTitle.cloudinaryId = result.public_id;
-            existingFileByTitle.url = result.url;
-            existingFileByTitle.secureUrl = result.secure_url;
-            existingFileByTitle.size = size;
-            existingFileByTitle.fileType = mimetype;
-            existingFileByTitle.fileHash = fileHash;
-            existingFileByTitle.updatedAt = new Date();
+        // Update current
+        existingFileForVersion.currentVersion = newVersionNumber;
+        existingFileForVersion.cloudinaryId = result.public_id;
+        existingFileForVersion.url = result.url;
+        existingFileForVersion.secureUrl = result.secure_url;
+        existingFileForVersion.size = size;
+        existingFileForVersion.fileType = mimetype;
+        existingFileForVersion.title = finalTitle;  // Update title if changed
+        existingFileForVersion.description = description.trim();
+        existingFileForVersion.updatedAt = new Date();
 
-            await existingFileByTitle.save();
+        await existingFileForVersion.save();
 
-            res.status(200).json({
-              success: true,
-              data: existingFileByTitle,
-              message: `New version uploaded (v${newVersionNumber})`,
-              isNewVersion: true,
-            });
-          } catch (dbError: any) {
-            // Rollback Cloudinary upload
-            await cloudinary.uploader.destroy(result.public_id).catch(() => {});
-            res.status(500).json({
-              success: false,
-              message: 'Failed to save new version',
-              error: dbError.message,
-            });
-          }
-        }
-      );
-
-      const stream = new Readable();
-      stream.push(buffer);
-      stream.push(null);
-      stream.pipe(uploadStream);
-
-      return;  
+        res.status(200).json({
+          success: true,
+          data: existingFileForVersion,
+          message: `New version uploaded (v${newVersionNumber})`,
+          isNewVersion: true,
+        });
+      } catch (dbError: any) {
+        await cloudinary.uploader.destroy(result.public_id).catch(() => {});
+        res.status(500).json({ success: false, message: 'Failed to save version' });
+      }
     }
+  );
+
+  const stream = new Readable();
+  stream.push(buffer);
+  stream.push(null);
+  stream.pipe(uploadStream);
+  return;
+}
 
     // Upload to Cloudinary using stream
     const uploadStream = cloudinary.uploader.upload_stream(
