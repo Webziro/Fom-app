@@ -13,25 +13,31 @@ const Layout = ({ children }) => {
   const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
+    // Check saved theme or system preference on mount
     const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      document.documentElement.classList.add('dark');
-      setDarkMode(true);
-    } else {
-      document.documentElement.classList.remove('dark');
-      setDarkMode(false);
-    }
-  }, []);
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
 
-  const toggleDarkMode = () => {
-    if (darkMode) {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
+    if (isDark) {
+      document.documentElement.classList.add('dark');
     } else {
+      document.documentElement.classList.remove('dark');
+    }
+    setDarkMode(isDark);
+  }, []); // Only on mount
+
+  // Toggle function
+  const toggleDarkMode = () => {
+    const newDarkMode = !darkMode;
+    setDarkMode(newDarkMode);
+
+    if (newDarkMode) {
       document.documentElement.classList.add('dark');
       localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
     }
-    setDarkMode(!darkMode);
   };
 
   const handleLogout = () => {

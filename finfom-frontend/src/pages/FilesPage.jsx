@@ -362,7 +362,7 @@ const FilesPage = () => {
       )}
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-3xl font-bold text-gray-900">My Files</h1>
+        <h1 className="text-3xl font-bold text-gray-900 text-gray-600 dark:text-gray-300">My Files</h1>
         <div className="flex gap-3 text-gray-600 dark:text-gray-300">
           <Button
             onClick={() => setShowCreateFolder(true)}

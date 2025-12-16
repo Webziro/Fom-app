@@ -1,6 +1,19 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
+// --- NEW INTERFACE FOR VERSION HISTORY ---
+export interface IVersion {
+  versionNumber: number;
+  uploadedAt: Date;
+  uploadedBy: mongoose.Types.ObjectId;
+  cloudinaryId: string;
+  url: string;
+  secureUrl: string;
+  size: number;
+  fileType: string;
+}
+
+// --- UPDATED MAIN INTERFACE ---
 export interface IFile extends Document {
   title: string;
   description?: string;
@@ -18,6 +31,11 @@ export interface IFile extends Document {
   updatedAt: Date;
   expiresAt?: Date;
   folderId?: mongoose.Types.ObjectId;
+  
+  // NEW: Version control fields
+  versions: IVersion[]; 
+  currentVersion: number;
+
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -44,6 +62,8 @@ const FileSchema = new Schema<IFile>({
     ref: 'Group',
     index: true
   },
+  // Note: The top-level cloudinaryId, url, secureUrl, size, and fileType
+  // will represent the CURRENT version's data.
   cloudinaryId: {
     type: String,
     required: true
@@ -86,17 +106,36 @@ const FileSchema = new Schema<IFile>({
   downloads: {
     type: Number,
     default: 0
+  },
+  versions: [
+    {
+      versionNumber: { type: Number, required: true },
+      uploadedAt: { type: Date, default: Date.now },
+      uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      cloudinaryId: { type: String, required: true },
+      url: { type: String, required: true },
+      secureUrl: { type: String, required: true },
+      size: { type: Number, required: true },
+      fileType: { type: String, required: true },
+      _id: false // Prevents Mongoose from creating an extra _id for subdocuments
+    }
+  ],
+  currentVersion: { 
+    type: Number, 
+    default: 1 
   }
 }, {
   timestamps: true
 });
 
+// Pre-save hook for password hashing (remains the same)
 FileSchema.pre('save', async function(next) {
   if (!this.isModified('password') || !this.password) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
+// Method for comparing password (remains the same)
 FileSchema.methods.comparePassword = async function(candidatePassword: string) {
   if (!this.password) return false;
   return await bcrypt.compare(candidatePassword, this.password);

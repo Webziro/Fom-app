@@ -17,6 +17,7 @@ import ProfilePage from './pages/ProfilePage';
 import PublicFilePage from './pages/PublicFilePage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import FolderViewPage from './pages/FolderViewPage';
+import LandingPage from './pages/LandingPage';
 
 const queryClient = new QueryClient();
 
@@ -27,15 +28,18 @@ function App() {
         <TailwindSafelist />
         <BrowserRouter>
 
-
-            {/* Private Routes */}
+            {/* Public Routes */}
           <Routes>
+            <Route path="/landing" element={<LandingPage />} /> 
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password/:resettoken" element={<ResetPasswordPage />} />
             <Route path="/folders/:id" element={<FolderViewPage />} />
+
+
+            {/* Private Routes */}
             <Route path="/dashboard" element={
               <PrivateRoute><DashboardPage /></PrivateRoute>
             } />
@@ -65,3 +69,7 @@ function App() {
 }
 
 export default App;
+
+
+
+

@@ -129,7 +129,7 @@ const DashboardPage = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-300">Dashboard</h1>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -154,7 +154,7 @@ const DashboardPage = () => {
         {/* Recent Files */}
         <div className="card">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="dark:bg-gray-800 text-xl font-semibold">Recent Files</h2>
+            <h2 className=" text-xl font-semibold text-gray-600 dark:text-gray-800">Recent Files</h2>
             <Link to="/files" className="hover:bg-[#1d4ed8] hover:text-primary-700 text-sm">
               View All →
             </Link>
