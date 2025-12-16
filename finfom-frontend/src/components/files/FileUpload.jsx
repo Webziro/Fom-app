@@ -95,41 +95,54 @@ const FileUpload = ({ onSuccess, onClose }) => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!file) {
-      return toast.error('Please select a file');
-    }
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    if (!selectedGroupId) {
-      return toast.error('Please select or create a group');
-    }
+  if (!file) {
+    return toast.error('Please select a file');
+  }
 
-    if (!formData.description.trim()) {
-      return toast.error('Description is required');
-    }
+  if (!selectedGroupId) {
+    return toast.error('Please select or create a group');
+  }
 
-    setUploading(true);
-    const uploadData = new FormData();
-    uploadData.append('file', file);
-    uploadData.append('title', formData.title);
-    uploadData.append('description', formData.description);
-    uploadData.append('groupId', selectedGroupId);
-    uploadData.append('visibility', formData.visibility);
-    
-    if (formData.visibility === 'password' && formData.password.trim()) {
-      uploadData.append('password', formData.password);
-    }
+  if (!formData.description.trim()) {
+    return toast.error('Description is required');
+  }
 
+  setUploading(true);
+  const uploadData = new FormData();
+  uploadData.append('file', file);
+  uploadData.append('title', formData.title);
+  uploadData.append('description', formData.description);
+  uploadData.append('groupId', selectedGroupId);
+  uploadData.append('visibility', formData.visibility);
+
+  if (formData.visibility === 'password' && formData.password.trim()) {
+    uploadData.append('password', formData.password);
+  }
+
+  try {
+    const response = await filesAPI.uploadFile(uploadData);  // or axios.post
+
+    // ← MOVE THE TOAST HERE, AFTER response is defined
     if (response.data.isNewVersion) {
       toast.success(
-      response.data.message || `New version uploaded (v${response.data.data.currentVersion})`
-    );
+        response.data.message || `New version uploaded (v${response.data.data.currentVersion})`
+      );
     } else {
       toast.success(response.data.message || 'File uploaded successfully!');
     }
-  };
+
+    // Reset form and close
+    onSuccess?.(response.data.data);
+    onClose();
+  } catch (error) {
+    toast.error(error.response?.data?.message || 'Upload failed');
+  } finally {
+    setUploading(false);
+  }
+};
   
 
   return (
