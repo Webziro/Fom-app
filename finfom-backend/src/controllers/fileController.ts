@@ -19,7 +19,6 @@ const calculateFileHash = (buffer: Buffer): string => {
 
 export const uploadFile = async (req: AuthRequest, res: Response) => {
   try {
-    // Basic validation
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
@@ -30,7 +29,6 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 
     const { title, description, groupId, visibility = 'private', password } = req.body;
 
-    // Validate required fields
     if (!groupId) {
       return res.status(400).json({ success: false, message: 'Group selection is required' });
     }
@@ -39,7 +37,6 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ success: false, message: 'File description is required' });
     }
 
-    // Verify the group exists
     const group = await Group.findById(groupId);
     if (!group) {
       return res.status(404).json({ success: false, message: 'Selected group does not exist' });
@@ -47,10 +44,9 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 
     const { buffer, originalname, mimetype, size } = req.file;
 
-    // Calculate hash
     const fileHash = calculateFileHash(buffer);
 
-    // 1. Check for exact duplicate (same hash, size, type) — block upload
+    // 1. Exact duplicate check (same hash, size, type — any user)
     const duplicateFile = await File.findOne({
       fileHash,
       size,
@@ -68,10 +64,10 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // 2. Check for versioning (same content, same user — allow new version)
+    // 2. Versioning check (same hash, same user)
     console.log('Checking for versioning...');
-    console.log('Current fileHash:', fileHash);
-    console.log('Uploader ID:', req.user._id.toString());
+    console.log('fileHash:', fileHash);
+    console.log('uploaderId:', req.user._id.toString());
 
     const existingFileForVersion = await File.findOne({
       fileHash,
@@ -79,7 +75,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
     });
 
     if (existingFileForVersion) {
-      console.log(`New version detected for file ${existingFileForVersion._id}. Old version: ${existingFileForVersion.currentVersion || 1}`);
+      console.log(`New version detected for file ${existingFileForVersion._id}. Current version: ${existingFileForVersion.currentVersion || 1}`);
 
       const newVersionNumber = (existingFileForVersion.currentVersion || 1) + 1;
       const finalTitle = (title?.trim() || originalname).trim();
@@ -93,7 +89,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
           }
 
           try {
-            // Save old current version to history
+            // Save old current to versions
             existingFileForVersion.versions.push({
               versionNumber: existingFileForVersion.currentVersion || 1,
               uploadedAt: new Date(),
@@ -105,7 +101,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
               fileType: existingFileForVersion.fileType,
             });
 
-            // Update current version
+            // Update current
             existingFileForVersion.currentVersion = newVersionNumber;
             existingFileForVersion.cloudinaryId = result.public_id;
             existingFileForVersion.url = result.url;
@@ -135,11 +131,12 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
       stream.push(buffer);
       stream.push(null);
       stream.pipe(uploadStream);
-      return; // Stop execution — version handled
+
+      return; // ← CRITICAL: Stop execution here
     }
 
-    // 3. Normal new file upload (no duplicate, no version)
-    console.log('Uploading new file...');
+    // 3. Normal new file upload
+    console.log('Uploading new file (no version detected)');
 
     const finalTitle = (title?.trim() || originalname).trim();
 
