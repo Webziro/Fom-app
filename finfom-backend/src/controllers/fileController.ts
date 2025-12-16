@@ -50,28 +50,10 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 
     const { buffer, originalname, mimetype, size } = req.file;
 
-    // Calculate hash for global deduplication
+    // Calculate hash for deduplication
     const fileHash = calculateFileHash(buffer);
 
-    // 1. Global duplicate check (same content — any user — block to save space)
-    const duplicateFile = await File.findOne({
-      fileHash,
-      size,
-      fileType: mimetype,
-    });
-
-    if (duplicateFile) {
-      console.log(`[DUPLICATE] File already exists: ${fileHash}`);
-      return res.status(200).json({
-        success: true,
-        data: duplicateFile,
-        message: 'File content already exists in the system. Using existing file.',
-        isDuplicate: true,
-        link: duplicateFile.secureUrl,
-      });
-    }
-
-    // 2. Versioning: same title, same user, same group
+    // 1. Check for versioning: same title, same user, same group
     const finalTitle = (title?.trim() || originalname).trim();
 
     const existingFileForVersion = await File.findOne({
@@ -139,10 +121,26 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
       return; // Stop normal upload
     }
 
+    // 2. Global duplicate check (same content — any user — block to save space)
+    const duplicateFile = await File.findOne({
+      fileHash,
+      size,
+      fileType: mimetype,
+    });
+
+    if (duplicateFile) {
+      console.log(`[DUPLICATE] File already exists: ${fileHash}`);
+      return res.status(200).json({
+        success: true,
+        data: duplicateFile,
+        message: 'File content already exists in the system. Using existing file.',
+        isDuplicate: true,
+        link: duplicateFile.secureUrl,
+      });
+    }
+
     // 3. Normal new file upload
     console.log('Uploading new file (no duplicate or version found)');
-
-    const finalTitle = (title?.trim() || originalname).trim();
 
     const uploadStream = cloudinary.uploader.upload_stream(
       { folder: 'finfom-uploads', resource_type: mimetype.startsWith('image/') ? 'image' : 'raw' },
