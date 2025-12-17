@@ -72,16 +72,17 @@ if (existingFileForVersion) {
     { folder: 'finfom-uploads', resource_type: mimetype.startsWith('image/') ? 'image' : 'raw' },
     async (error, result) => {
       if (error || !result) {
-        return res.status(500).json({ success: false, message: 'Cloudinary upload failed' });
+        console.error('Cloudinary upload failed:', error);
+        return res.status(500).json({ success: false, message: 'Failed to upload new version' });
       }
 
-      existingFileForVersion.fileHash = fileHash;
       try {
+        // SAFETY: Initialize versions array
         if (!Array.isArray(existingFileForVersion.versions)) {
           existingFileForVersion.versions = [];
         }
 
-        // Tell Mongoose the array was modified (critical for old documents)
+        // Tell Mongoose the array was modified
         existingFileForVersion.markModified('versions');
 
         // Save old version
@@ -105,11 +106,13 @@ if (existingFileForVersion) {
         existingFileForVersion.fileType = mimetype;
         existingFileForVersion.title = finalTitle;
         existingFileForVersion.description = description.trim();
-        existingFileForVersion.fileHash = fileHash;
+        existingFileForVersion.fileHash = fileHash;  // ← Important
         existingFileForVersion.updatedAt = new Date();
 
+        // Save and handle any validation error
         await existingFileForVersion.save();
 
+        // Only send response after successful save
         res.status(200).json({
           success: true,
           data: existingFileForVersion,
@@ -117,7 +120,8 @@ if (existingFileForVersion) {
           isNewVersion: true,
         });
       } catch (dbError: any) {
-        console.error('Version save error:', dbError);
+        console.error('Version save error:', dbError.message);
+        // Rollback Cloudinary
         await cloudinary.uploader.destroy(result.public_id).catch(() => {});
         res.status(500).json({ success: false, message: 'Failed to save new version', error: dbError.message });
       }
