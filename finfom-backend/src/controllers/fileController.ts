@@ -105,6 +105,7 @@ if (existingFileForVersion) {
         existingFileForVersion.fileType = mimetype;
         existingFileForVersion.title = finalTitle;
         existingFileForVersion.description = description.trim();
+        existingFileForVersion.fileHash = fileHash;
         existingFileForVersion.updatedAt = new Date();
 
         await existingFileForVersion.save();
