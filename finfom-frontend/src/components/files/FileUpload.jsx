@@ -5,6 +5,7 @@ import { groupsAPI } from '../../api/groups';
 import toast from 'react-hot-toast';
 import Button from '../common/Button';
 import Input from '../common/Input';
+import { useQueryClient } from '@tanstack/react-query';
 
 const FileUpload = ({ onSuccess, onClose }) => {
   const [file, setFile] = useState(null);
@@ -12,6 +13,7 @@ const FileUpload = ({ onSuccess, onClose }) => {
   const [selectedGroupId, setSelectedGroupId] = useState('');
   const [newGroupName, setNewGroupName] = useState('');
   const [isCreatingNewGroup, setIsCreatingNewGroup] = useState(false);
+  const queryClient = useQueryClient(); 
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -126,18 +128,14 @@ const handleSubmit = async (e) => {
   try {
   const response = await filesAPI.uploadFile(uploadData);
 
-  // if (response.data.isNewVersion) {
-  // toast.success(`New version uploaded (v${response.data.data.currentVersion})`);
-  // } else {
-  //   toast.success('File uploaded successfully!');
-  // }
- 
+  // Accept both 200 (version) and 201 (new file) as success
 
-  if (response.data.isNewVersion) {
-    toast.success(
-      response.data.message || `New version uploaded (v${response.data.data.currentVersion})`
-    );
-  } else {
+  if (response.status === 200 || response.status === 201) {
+    if (response.data.isNewVersion) {
+      toast.success(
+        response.data.message || `New version uploaded (v${response.data.data.currentVersion})`
+      );
+    } else {
     toast.success(response.data.message || 'File uploaded successfully!');
   }
    queryClient.invalidateQueries({ queryKey: ['myFiles'] });
@@ -147,10 +145,9 @@ const handleSubmit = async (e) => {
   onClose();
   } catch (error) {
     toast.error(error.response?.data?.message || 'Upload failed');
-  } finally {
+  } } finally {
     setUploading(false);
-  }
-};
+  }};
   
 
   return (
