@@ -126,11 +126,12 @@ const handleSubmit = async (e) => {
   try {
   const response = await filesAPI.uploadFile(uploadData);
 
-  if (response.data.isNewVersion) {
-  toast.success(`New version uploaded (v${response.data.data.currentVersion})`);
-  } else {
-    toast.success('File uploaded successfully!');
-  }
+  // if (response.data.isNewVersion) {
+  // toast.success(`New version uploaded (v${response.data.data.currentVersion})`);
+  // } else {
+  //   toast.success('File uploaded successfully!');
+  // }
+ 
 
   if (response.data.isNewVersion) {
     toast.success(
@@ -139,6 +140,7 @@ const handleSubmit = async (e) => {
   } else {
     toast.success(response.data.message || 'File uploaded successfully!');
   }
+   queryClient.invalidateQueries({ queryKey: ['myFiles'] });
 
   // Reset form and close
   onSuccess?.(response.data.data);
