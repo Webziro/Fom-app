@@ -1,6 +1,6 @@
 import { X, Download, FileText, Calendar, User as UserIcon, HardDrive, History } from 'lucide-react';
 import { useState } from 'react';
-import VersionHistoryModal from './VersionHistoryModal'; // Adjust path if needed
+import VersionHistoryModal from './VersionHistoryModal'; 
 
 const FilePreviewModal = ({ file, onClose, onDownload }) => {
   const [imageError, setImageError] = useState(false);
@@ -129,40 +129,48 @@ const FilePreviewModal = ({ file, onClose, onDownload }) => {
       <div className="bg-white rounded-lg shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-xl font-semibold text-gray-900 truncate">{file.title}</h2>
-            <p className="text-sm text-gray-500 mt-1">
-              {file.fileType} • {formatBytes(file.size)}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 ml-4">
-            {/* Version History Button - Only show if multiple versions */}
-            {file.currentVersion > 1 && (
-              <button
-                onClick={() => setShowVersionHistory(true)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                title="Version History"
-              >
-                <History className="w-5 h-5 text-gray-600" />
-              </button>
-            )}
+    <div className="flex-1 min-w-0">
+      <h2 className="text-xl font-semibold text-gray-900 truncate">{file.title}</h2>
+      <p className="text-sm text-gray-500 mt-1">
+        {file.fileType} • {formatBytes(file.size)}
+        {file.currentVersion > 1 && (
+          <span className="ml-2 text-xs bg-primary-100 text-primary-700 px-2 py-1 rounded">
+            v{file.currentVersion}
+          </span>
+        )}
+      </p>
+    </div>
+  <div className="flex items-center gap-2 ml-4">
+    {/* Version History Button - Only show if multiple versions */}
+    {file.currentVersion > 1 && (
+      <button
+        onClick={() => setShowVersionHistory(true)}
+        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+        title="Version History"
+      >
+        <History className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+      </button>
+    )}
 
-            <button
-              onClick={() => onDownload(file._id)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              title="Download"
-            >
-              <Download className="w-5 h-5 text-gray-600" />
-            </button>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              title="Close"
-            >
-              <X className="w-5 h-5 text-gray-600" />
-            </button>
-          </div>
-        </div>
+    {/* Download Button */}
+    <button
+      onClick={() => onDownload(file._id)}
+      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+      title="Download"
+    >
+      <Download className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+    </button>
+
+    {/* Close Button */}
+    <button
+      onClick={onClose}
+      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+      title="Close"
+    >
+      <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+    </button>
+  </div>
+</div>
 
         {/* Preview Content */}
         <div className="flex-1 overflow-auto p-4">
