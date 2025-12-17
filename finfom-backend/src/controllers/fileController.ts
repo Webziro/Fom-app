@@ -75,8 +75,8 @@ if (existingFileForVersion) {
         return res.status(500).json({ success: false, message: 'Cloudinary upload failed' });
       }
 
+      existingFileForVersion.fileHash = fileHash;
       try {
-        // FORCE INITIALIZE versions array
         if (!Array.isArray(existingFileForVersion.versions)) {
           existingFileForVersion.versions = [];
         }
