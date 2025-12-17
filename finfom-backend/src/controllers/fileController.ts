@@ -62,7 +62,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
       groupId,
     });
 
- if (existingFileForVersion) {
+if (existingFileForVersion) {
   console.log(`New version detected for file ${existingFileForVersion._id}`);
 
   const newVersionNumber = (existingFileForVersion.currentVersion || 1) + 1;
@@ -76,12 +76,15 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
       }
 
       try {
-        // FIX: Initialize versions if undefined (for old files)
-      // Save old version to history
-        if (!existingFileForVersion.versions) {
-          existingFileForVersion.versions = [];  // Initialize if undefined
+        // FORCE INITIALIZE versions array
+        if (!Array.isArray(existingFileForVersion.versions)) {
+          existingFileForVersion.versions = [];
         }
 
+        // Tell Mongoose the array was modified (critical for old documents)
+        existingFileForVersion.markModified('versions');
+
+        // Save old version
         existingFileForVersion.versions.push({
           versionNumber: existingFileForVersion.currentVersion || 1,
           uploadedAt: new Date(),
@@ -113,8 +116,9 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
           isNewVersion: true,
         });
       } catch (dbError: any) {
+        console.error('Version save error:', dbError);
         await cloudinary.uploader.destroy(result.public_id).catch(() => {});
-        res.status(500).json({ success: false, message: 'Failed to save new version' });
+        res.status(500).json({ success: false, message: 'Failed to save new version', error: dbError.message });
       }
     }
   );

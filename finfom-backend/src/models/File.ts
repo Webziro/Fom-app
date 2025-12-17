@@ -120,7 +120,7 @@ const FileSchema = new Schema<IFile>({
   type: Number,
   default: 1,
 },
-versions: {
+trueversions: {
   type: [{
     versionNumber: { type: Number, required: true },
     uploadedAt: { type: Date, default: Date.now },
