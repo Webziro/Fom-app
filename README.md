@@ -1,47 +1,49 @@
 # Finfom API
 
 ## Overview
-Finfom is a robust document management backend built with Node.js, TypeScript, and Express. It provides a secure infrastructure for file versioning, content deduplication via MD5 hashing, and granular access controls for private and public sharing.
+Finfom is a robust document management and secure sharing platform built using Node.js, Express, and TypeScript. It leverages a modern microservice-ready architecture to handle file versioning, granular access control, and real-time analytics for digital assets.
 
-## Features
-- TypeScript: Strongly typed codebase for maintainability and error prevention.
-- MongoDB: NoSQL database for flexible document and folder metadata management.
-- Redis: Integrated caching layer to optimize public file access and group queries.
-- Cloudinary: Cloud-based storage for high-availability binary file hosting.
-- JWT & OAuth: Secure authentication via JSON Web Tokens and Google login integration.
-- Docker: Containerized environment for consistent deployment across stages.
+## Tools
+- Node.js & TypeScript: High-performance server-side logic with static typing for maintainability.
+- MongoDB & Mongoose: Flexible NoSQL data modeling for documents, folders, and group structures.
+- Redis: In-memory data store used for API response caching to optimize public resource access.
+- Cloudinary: Integrated cloud storage for secure asset hosting and optimized file delivery.
+- Multer: Efficient handling of multipart/form-data for seamless document uploads.
+- JWT: Stateless authentication mechanism using JSON Web Tokens for secure session management.
+- Winston & Morgan: Comprehensive logging suite for auditing HTTP traffic and system events.
 
 ## Getting Started
 ### Installation
-1. Clone the Repository:
+1. Clone the repository:
 ```bash
 git clone https://github.com/Webziro/Fom-app.git
+```
+2. Navigate to the backend directory:
+```bash
 cd finfom-backend
 ```
-
-2. Install Dependencies:
+3. Install production and development dependencies:
 ```bash
 npm install
 ```
-
-3. Setup Services:
-```bash
-docker-compose up -d
-```
-
-4. Seed System Groups:
+4. Seed the system groups (Technology, Business, etc.):
 ```bash
 npm run seed
 ```
+5. Launch the development server:
+```bash
+npm run dev
+```
 
 ### Environment Variables
-Create a `.env` file in the root directory:
+Create a `.env` file in the backend root and configure the following:
 ```text
 PORT=5000
+NODE_ENV=development
 MONGODB_URI=mongodb://localhost:27017/finfom
 REDIS_HOST=localhost
 REDIS_PORT=6379
-JWT_SECRET=your_super_secret_key
+JWT_SECRET=your_jwt_secret_key
 JWT_EXPIRE=7d
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
@@ -52,22 +54,158 @@ SMTP_PORT=465
 SMTP_EMAIL=your_email@gmail.com
 SMTP_PASSWORD=your_app_password
 FROM_NAME=Finfom
-FROM_EMAIL=noreply@finfom.com
+FROM_EMAIL=no-reply@finfom.com
 ```
 
 ## API Documentation
 ### Base URL
-`http://localhost:5000/api`
+`http://localhost:5000`
 
 ### Endpoints
 
-#### POST /auth/register
+#### POST /api/auth/register
 **Request**:
 ```json
 {
   "username": "johndoe",
-  "email": "john@example.com",
+  "email": "john.doe@example.com",
   "password": "StrongPassword123!"
+}
+```
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "64f8a7b2c9d4e5f6a7b8c9d0",
+    "username": "johndoe",
+    "email": "john.doe@example.com",
+    "role": "user",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+}
+```
+**Errors**:
+- 400: User already exists or validation failed (password too weak, invalid email).
+
+#### POST /api/auth/login
+**Request**:
+```json
+{
+  "email": "john.doe@example.com",
+  "password": "StrongPassword123!"
+}
+```
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "64f8a7b2c9d4e5f6a7b8c9d0",
+    "token": "eyJhbGciOiJIUzI1Ni..."
+  }
+}
+```
+**Errors**:
+- 401: Invalid credentials.
+
+#### POST /api/files/upload
+**Request**:
+_Multipart Form Data_
+- `file`: binary data (PDF, JPG, PNG, DOCX)
+- `title`: "Quarterly Report"
+- `description`: "Final version for Q3"
+- `groupId`: "64f8a..."
+- `visibility`: "private" | "public" | "password"
+- `password`: "secret123" (if visibility is password)
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "64f8a7b2c9d4e5f6a7b8c9d1",
+    "title": "Quarterly Report",
+    "url": "https://res.cloudinary.com/...",
+    "currentVersion": 1
+  }
+}
+```
+**Errors**:
+- 400: Missing required fields or invalid file type.
+
+#### GET /api/files
+**Request**:
+`GET /api/files?page=1&limit=10&search=report&folderId=64f...`
+_Header: Authorization: Bearer <token>_
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": [...],
+  "pagination": {
+    "total": 25,
+    "pages": 3
+  }
+}
+```
+
+#### POST /api/files/:id/download
+**Request**:
+```json
+{
+  "password": "secret123"
+}
+```
+**Response**:
+_Binary stream with Content-Disposition header_
+
+**Errors**:
+- 403: Access denied (private file or incorrect password).
+
+#### GET /api/files/analytics
+**Request**:
+_Header: Authorization: Bearer <token>_
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "totalDownloads": 150,
+    "storageUsed": 10485760,
+    "topFiles": [...],
+    "fileTypes": [{"_id": "application/pdf", "count": 10}]
+  }
+}
+```
+
+#### POST /api/groups
+**Request**:
+```json
+{
+  "title": "work_docs",
+  "description": "Professional documentation"
+}
+```
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "64f8a7b2c9d4e5...",
+    "displayName": "Work docs"
+  }
+}
+```
+
+#### POST /api/files/folders
+**Request**:
+```json
+{
+  "title": "Tax Returns 2024",
+  "description": "Financial folders"
 }
 ```
 **Response**:
@@ -76,188 +214,39 @@ FROM_EMAIL=noreply@finfom.com
   "success": true,
   "data": {
     "id": "64f8a7...",
-    "username": "johndoe",
-    "email": "john@example.com",
-    "token": "eyJhbGci..."
+    "title": "Tax Returns 2024"
   }
-}
-```
-**Errors**:
-- 400: User already exists or validation failed.
-
-#### POST /auth/login
-**Request**:
-```json
-{
-  "email": "john@example.com",
-  "password": "StrongPassword123!"
-}
-```
-**Response**:
-```json
-{
-  "success": true,
-  "data": {
-    "token": "eyJhbGci..."
-  }
-}
-```
-**Errors**:
-- 401: Invalid credentials.
-
-#### POST /auth/google
-**Request**:
-```json
-{
-  "token": "google_access_token"
-}
-```
-**Response**:
-```json
-{
-  "token": "jwt_token",
-  "user": { "id": "...", "username": "..." }
-}
-```
-
-#### GET /auth/me
-**Request**:
-- Headers: `Authorization: Bearer <token>`
-**Response**:
-```json
-{
-  "success": true,
-  "data": { "username": "johndoe", "email": "..." }
-}
-```
-
-#### POST /files/upload
-**Request**:
-- Content-Type: `multipart/form-data`
-- Body: `file` (Binary), `title`, `description`, `groupId`, `visibility` (public|private|password), `password` (optional)
-**Response**:
-```json
-{
-  "success": true,
-  "data": {
-    "title": "Document.pdf",
-    "url": "https://res.cloudinary.com/...",
-    "currentVersion": 1
-  }
-}
-```
-
-#### GET /files
-**Request**:
-- Query: `page`, `limit`, `search`, `folderId`
-**Response**:
-```json
-{
-  "success": true,
-  "data": [],
-  "pagination": { "total": 0, "pages": 0 }
-}
-```
-
-#### POST /files/:id/access
-**Request**:
-- Body: `{ "password": "..." }` (Required if visibility is "password")
-**Response**:
-```json
-{
-  "success": true,
-  "data": { "secureUrl": "...", "title": "..." }
-}
-```
-
-#### POST /files/:id/download
-**Request**:
-- Headers: `Authorization: Bearer <token>` (if private)
-**Response**:
-- File Stream (Binary)
-
-#### GET /files/analytics
-**Request**:
-- Headers: `Authorization: Bearer <token>`
-**Response**:
-```json
-{
-  "success": true,
-  "data": {
-    "totalDownloads": 150,
-    "storageUsed": 1048576,
-    "fileTypes": [{ "_id": "application/pdf", "count": 5 }]
-  }
-}
-```
-
-#### POST /files/folders
-**Request**:
-```json
-{
-  "title": "Work Folders",
-  "description": "Important work files",
-  "parentFolder": "id_if_nested"
-}
-```
-**Response**:
-```json
-{
-  "success": true,
-  "data": { "id": "...", "title": "Work Folders" }
-}
-```
-
-#### GET /groups
-**Request**:
-- Headers: `Authorization: Bearer <token>`
-**Response**:
-```json
-{
-  "success": true,
-  "data": [
-    { "title": "tech", "displayName": "Technology", "isSystem": true }
-  ]
-}
-```
-
-#### POST /groups
-**Request**:
-```json
-{
-  "title": "Custom Group",
-  "description": "My custom collection"
 }
 ```
 
 ## Technologies Used
-| Technology | Purpose | Link |
+| Technology | Description | Link |
 | :--- | :--- | :--- |
-| TypeScript | Language | [Website](https://www.typescriptlang.org/) |
-| Node.js | Runtime | [Website](https://nodejs.org/) |
-| Express | Framework | [Website](https://expressjs.com/) |
-| MongoDB | Database | [Website](https://www.mongodb.com/) |
-| Redis | Caching | [Website](https://redis.io/) |
-| Cloudinary | Storage | [Website](https://cloudinary.com/) |
-| Docker | Deployment | [Website](https://www.docker.com/) |
-
-## Usage
-The API is designed for a frontend consumer (React/Vite). To use the file versioning system, upload a file with the same title as an existing one within the same group; the backend will automatically archive the previous version and increment the version counter. For shared files, public links are generated based on the file ID, with optional password protection verified server-side.
+| Node.js | JavaScript Runtime | [Link](https://nodejs.org/) |
+| TypeScript | Typed JavaScript | [Link](https://www.typescriptlang.org/) |
+| Express | Web Framework | [Link](https://expressjs.com/) |
+| MongoDB | NoSQL Database | [Link](https://www.mongodb.com/) |
+| Redis | Caching Engine | [Link](https://redis.io/) |
+| Cloudinary | Cloud Storage | [Link](https://cloudinary.com/) |
+| Vite | Frontend Tooling | [Link](https://vitejs.dev/) |
+| Tailwind CSS | Utility-first CSS | [Link](https://tailwindcss.com/) |
 
 ## Contributing
-- Fork the project and create a new branch.
-- Ensure all TypeScript types are correctly defined.
-- Follow the existing middleware pattern for security and logging.
-- Submit a pull request with a detailed description of changes.
+- Fork the repository.
+- Create a new feature branch (`git checkout -b feature/NewFeature`).
+- Commit your changes with descriptive messages.
+- Push to the branch (`git push origin feature/NewFeature`).
+- Open a Pull Request for review.
 
 ## Author Info
-- Github: [Webziro](https://github.com/Webziro)
+**Project Lead**
+- GitHub: [Webziro](https://github.com/Webziro)
 - Twitter: [Placeholder]
 - LinkedIn: [Placeholder]
 
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
-![Express.js](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![Express](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
 [![Readme was generated by Dokugen](https://img.shields.io/badge/Readme%20was%20generated%20by-Dokugen-brightgreen)](https://www.npmjs.com/package/dokugen)
