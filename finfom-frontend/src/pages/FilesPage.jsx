@@ -146,16 +146,16 @@ const FilesPage = () => {
         </div>
 
         {/* Search Bar */}
-        <div className="card">
+        <div className="card dark:bg-gray-800 p-4">
           <div className="flex gap-4">
-            <div className="flex-1 relative">
+            <div className="flex-1 relative ">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search files..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="input-field pl-10"
+                className="input-field  h-20 w-full pl-10 rounded-lg "
               />
             </div>
             <button className="btn-secondary flex items-center gap-2">
