@@ -7,6 +7,7 @@ import {
   updateFile,
   deleteFile,
   getPublicFiles,
+  getAllAccessibleFiles,
   getAnalytics,
   createFolder, getMyFolders, updateFolder, deleteFolder, getFolder
 } from '../controllers/fileController';
@@ -70,6 +71,7 @@ router.get('/folders', protect, getMyFolders);
 router.put('/folders/:id', protect, updateFolder);
 router.delete('/folders/:id', protect, deleteFolder);
 router.get('/folders/:id', protect, getFolder);
+router.get('/accessible', protect, getAllAccessibleFiles);
 
 // Analytics route 
 // router.get('/analytics', protect, getAnalytics);

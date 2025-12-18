@@ -478,57 +478,123 @@ export const updateFile = async (req: AuthRequest, res: Response) => {
 
 // Update file metadata function
 export const deleteFile = async (req: AuthRequest, res: Response) => {
-  try {
-    const file = await File.findById(req.params.id);
-    if (!file) {
-      return res.status(404).json({ message: 'File not found' });
-    }
+  try {
+    const file = await File.findById(req.params.id);
+    if (!file) {
+      return res.status(404).json({ message: 'File not found' });
+    }
 
-    if (file.uploaderId.toString() !== req.user!._id.toString()) {
-      return res.status(403).json({ message: 'Not authorized' });
-    }
+    if (file.uploaderId.toString() !== req.user!._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
 
-    await cloudinary.uploader.destroy(file.cloudinaryId);
-    await file.deleteOne();
+    // Delete current file from Cloudinary
+    if (file.cloudinaryId) {
+      await cloudinary.uploader.destroy(file.cloudinaryId).catch((err) => {
+        console.error('Failed to delete current Cloudinary file:', err);
+      });
+    }
 
-    res.json({ success: true, message: 'File deleted successfully' });
-  } catch (error: any) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
+    // Delete all old versions from Cloudinary
+    if (file.versions && file.versions.length > 0) {
+      const deletePromises = file.versions.map((version) => {
+        if (version.cloudinaryId) {
+          return cloudinary.uploader.destroy(version.cloudinaryId).catch((err) => {
+            console.error('Failed to delete version Cloudinary file:', err);
+          });
+        }
+        return Promise.resolve();
+      });
+
+      await Promise.all(deletePromises);
+    }
+
+    // Delete the file document from DB
+    await file.deleteOne();
+
+    res.json({ success: true, message: 'File and all versions deleted successfully' });
+  } catch (error: any) {
+    console.error('Delete file error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
 };
 
 // Get public files with pagination and search function
 export const getPublicFiles = async (req: AuthRequest, res: Response) => {
-  try {
-    const { page = 1, limit = 10, search } = req.query;
-    const query: any = { visibility: 'public' };
+  try {
+    const { page = 1, limit = 10, search } = req.query;
 
-    if (search) {
-      query.$text = { $search: search as string };
-    }
+    const query: any = {
+      visibility: { $in: ['public', 'password'] },  // ← Include both public and password
+    };
 
-    const files = await File.find(query)
-      .populate('uploaderId', 'username')
-      .populate('groupId', 'title')
-      .sort({ createdAt: -1 })
-      .limit(Number(limit))
-      .skip((Number(page) - 1) * Number(limit));
+    if (search) {
+      query.$text = { $search: search as string };
+    }
 
-    const total = await File.countDocuments(query);
+    const files = await File.find(query)
+      .populate('uploaderId', 'username')
+      .populate('groupId', 'title')
+      .sort({ createdAt: -1 })
+      .limit(Number(limit))
+      .skip((Number(page) - 1) * Number(limit));
 
-    res.json({
-      success: true,
-      data: files,
-      pagination: {
-        page: Number(page),
-        limit: Number(limit),
-        total,
-        pages: Math.ceil(total / Number(limit)),
-      },
-    });
-  } catch (error: any) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
+    const total = await File.countDocuments(query);
+
+    res.json({
+      success: true,
+      data: files,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        pages: Math.ceil(total / Number(limit)),
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+//Get getAllAccessibleFiles function
+export const getAllAccessibleFiles = async (req: AuthRequest, res: Response) => {
+  try {
+    const { page = 1, limit = 20, search } = req.query;
+
+    const query: any = {
+      $or: [
+        { uploaderId: req.user!._id },  // My files (all visibility)
+        { visibility: 'public' },       // All public files
+        { visibility: 'password' },     // All password-protected files (will prompt in frontend)
+      ],
+    };
+
+    if (search) {
+      query.$text = { $search: search as string };
+    }
+
+    const files = await File.find(query)
+      .populate('uploaderId', 'username')
+      .populate('groupId', 'title')
+      .sort({ createdAt: -1 })
+      .limit(Number(limit))
+      .skip((Number(page) - 1) * Number(limit));
+
+    const total = await File.countDocuments(query);
+
+    res.json({
+      success: true,
+      data: files,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        pages: Math.ceil(total / Number(limit)),
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
 };
 
 // Get analytics for user's files function 

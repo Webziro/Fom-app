@@ -57,9 +57,9 @@ const FilesPage = () => {
 
   // Fetch files with react-query
   const { data, isLoading } = useQuery({
-    queryKey: ['myFiles', searchTerm, folderId],
-    queryFn: () => filesAPI.getMyFiles({ search: searchTerm, limit: 50, folderId: null }),
-  });
+  queryKey: ['accessibleFiles', searchTerm],
+  queryFn: () => filesAPI.getAllAccessibleFiles({ search: searchTerm, limit: 50 }),
+});
 
   // Fetch folders with react-query
   const { data: foldersData } = useQuery({
