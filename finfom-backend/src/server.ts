@@ -66,7 +66,7 @@ app.get('/', (req, res) => {
   res.json({
     message: 'Welcome to Finfom API',
     status: 'running',
-    documentation: '/api-docs' // Placeholder if you have docs
+    documentation: '/api-docs' 
   });
 });
 
