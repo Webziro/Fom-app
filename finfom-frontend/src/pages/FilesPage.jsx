@@ -227,7 +227,7 @@ const FilesPage = () => {
         const isMenuOpen = openMenuId === file._id;
 
       return (
-        <div key={file._id} className="card hover:shadow-lg transition-shadow cursor-pointer" 
+        <div key={file._id} className="card hover:shadow-lg transition-shadow cursor-pointer bg-white dark:bg-gray-800" 
           onClick={async () => {
           await queryClient.invalidateQueries({ 
             queryKey: ['myFiles'] 
@@ -319,12 +319,12 @@ const FilesPage = () => {
   </div>
   </div>
 
-    <h3 className="font-semibold text-gray-900 mb-1 truncate">{file.title}</h3>
+    <h3 className="font-semibold text-gray-900 mb-1 truncate dark:text-gray-100">{file.title}</h3>
     {file.description && (
-      <p className="text-sm text-gray-600 mb-3 line-clamp-2">{file.description}</p>
+      <p className="text-sm text-gray-600 mb-3 line-clamp-2 dark:text-gray-100">{file.description}</p>
     )}
 
-    <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
+    <div className="flex items-center justify-between text-sm text-gray-500 mb-2 dark:text-gray-100">
     <span>{formatBytes(file.size)}</span>
     <span
       className={`px-2 py-1 rounded text-xs ${file.visibility === 'public'
@@ -339,7 +339,7 @@ const FilesPage = () => {
             </div>
 
             {!isOwner && file.uploaderId && (
-              <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1 dark:text-gray-100">
                 <User className="w-3 h-3" />
                 <span>Uploaded by {file.uploaderId.username}</span>
               </div>
