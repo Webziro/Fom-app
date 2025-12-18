@@ -1,16 +1,51 @@
-import { X, Download, FileText, Calendar, User as UserIcon, HardDrive, History } from 'lucide-react';
+import { X, Download, FileText, Calendar, User as UserIcon, HardDrive, History, Lock } from 'lucide-react';
 import { useState } from 'react';
-import VersionHistoryModal from './VersionHistoryModal'; 
+import toast from 'react-hot-toast';
+import VersionHistoryModal from './VersionHistoryModal';
+import { filesAPI } from '../../api/files';
 
-const FilePreviewModal = ({ file, onClose, onDownload }) => {
+const FilePreviewModal = ({ file, onClose, onDownload, currentUserId }) => {
   const [imageError, setImageError] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
 
+  // Password state
+  const [password, setPassword] = useState('');
+  const [submittedPassword, setSubmittedPassword] = useState(false);
+  const [isPasswordCorrect, setIsPasswordCorrect] = useState(false);
+  const [checkingPassword, setCheckingPassword] = useState(false);
+
   if (!file) return null;
+
+  const isOwner = file.uploaderId?._id === currentUserId;
+  const needsPassword = file.visibility === 'password' && !isOwner && !isPasswordCorrect;
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    if (!password.trim()) {
+      toast.error('Password is required');
+      return;
+    }
+
+    setCheckingPassword(true);
+    try {
+      const response = await filesAPI.verifyFilePassword(file._id, { password });
+
+      if (response.data.success) {
+        setIsPasswordCorrect(true);
+        toast.success('Password correct! Enjoy the file');
+      } else {
+        toast.error('Incorrect password');
+      }
+    } catch (error) {
+      toast.error('Failed to verify password');
+    } finally {
+      setCheckingPassword(false);
+      setSubmittedPassword(true);
+    }
+  };
 
   const getFileType = () => {
     const fileType = file.fileType?.toLowerCase() || '';
-
     if (fileType.startsWith('image/')) return 'image';
     if (fileType === 'application/pdf') return 'pdf';
     if (fileType.startsWith('video/')) return 'video';
@@ -126,90 +161,128 @@ const FilePreviewModal = ({ file, onClose, onDownload }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
-    <div className="flex-1 min-w-0">
-      <h2 className="text-xl font-semibold text-gray-900 truncate">{file.title}</h2>
-      <p className="text-sm text-gray-500 mt-1">
-        {file.fileType} • {formatBytes(file.size)}
-        {file.currentVersion > 1 && (
-          <span className="ml-2 text-xs bg-primary-100 text-primary-700 px-2 py-1 rounded">
-            v{file.currentVersion}
-          </span>
-        )}
-      </p>
-    </div>
-  <div className="flex items-center gap-2 ml-4">
-    {/* Version History Button - Only show if multiple versions */}
-    {file.currentVersion > 1 && (
-      <button
-        onClick={() => setShowVersionHistory(true)}
-        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-        title="Version History"
-      >
-        <History className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-      </button>
-    )}
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white truncate flex items-center gap-2">
+              {file.title}
+              {file.visibility === 'password' && <Lock className="w-5 h-5 text-yellow-600" />}
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {file.fileType} • {formatBytes(file.size)}
+              {file.currentVersion > 1 && (
+                <span className="ml-2 text-xs bg-primary-100 text-primary-700 px-2 py-1 rounded">
+                  v{file.currentVersion}
+                </span>
+              )}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Version History */}
+            {file.currentVersion > 1 && (
+              <button
+                onClick={() => setShowVersionHistory(true)}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                title="Version History"
+              >
+                <History className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+              </button>
+            )}
 
-    {/* Download Button */}
-    <button
-      onClick={() => onDownload(file._id)}
-      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-      title="Download"
-    >
-      <Download className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-    </button>
+            {/* Download (disabled if password needed) */}
+            <button
+              onClick={() => onDownload(file._id)}
+              disabled={needsPassword}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50"
+              title="Download"
+            >
+              <Download className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+            </button>
 
-    {/* Close Button */}
-    <button
-      onClick={onClose}
-      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-      title="Close"
-    >
-      <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-    </button>
-  </div>
-</div>
-
-        {/* Preview Content */}
-        <div className="flex-1 overflow-auto p-4">
-          {renderPreview()}
+            {/* Close */}
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+              title="Close"
+            >
+              <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+            </button>
+          </div>
         </div>
 
-        {/* Footer with metadata */}
-        <div className="border-t p-4 bg-gray-50">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            {file.uploaderId && (
-              <div className="flex items-center gap-2 text-gray-600">
-                <UserIcon className="w-4 h-4" />
-                <span>Uploaded by {file.uploaderId.username || 'Unknown'}</span>
+        {/* Main Content */}
+        <div className="flex-1 overflow-auto">
+          {needsPassword ? (
+            // Password Prompt
+            <div className="p-12 text-center">
+              <Lock className="w-20 h-20 text-yellow-600 mx-auto mb-6" />
+              <h3 className="text-2xl font-bold mb-3">This file is password protected</h3>
+              <p className="text-gray-600 mb-8 max-w-md mx-auto">
+                Enter the password to view or download the file
+              </p>
+              <form onSubmit={handlePasswordSubmit} className="max-w-sm mx-auto space-y-4">
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter password"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  disabled={checkingPassword}
+                  className="w-full btn-primary py-3"
+                >
+                  {checkingPassword ? 'Checking...' : 'Unlock File'}
+                </button>
+              </form>
+              {submittedPassword && !isPasswordCorrect && (
+                <p className="text-red-600 mt-4">Incorrect password. Please try again.</p>
+              )}
+            </div>
+          ) : (
+            // Normal Preview
+            <>
+              <div className="p-4">{renderPreview()}</div>
+
+              {/* Footer */}
+              <div className="border-t p-4 bg-gray-50 dark:bg-gray-700">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  {file.uploaderId && (
+                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                      <UserIcon className="w-4 h-4" />
+                      <span>Uploaded by {file.uploaderId.username || 'Unknown'}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                    <Calendar className="w-4 h-4" />
+                    <span>{new Date(file.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                    <HardDrive className="w-4 h-4" />
+                    <span>{file.downloads || 0} downloads</span>
+                  </div>
+                </div>
+                {file.description && (
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-3 pt-3 border-t">
+                    {file.description}
+                  </p>
+                )}
               </div>
-            )}
-            <div className="flex items-center gap-2 text-gray-600">
-              <Calendar className="w-4 h-4" />
-              <span>{new Date(file.createdAt).toLocaleDateString()}</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <HardDrive className="w-4 h-4" />
-              <span>{file.downloads || 0} downloads</span>
-            </div>
-          </div>
-          {file.description && (
-            <p className="text-sm text-gray-600 mt-3 pt-3 border-t">
-              {file.description}
-            </p>
+            </>
           )}
         </div>
-      </div>
 
-      {/* Version History Modal */}
-      {showVersionHistory && (
-        <VersionHistoryModal
-          file={file}
-          onClose={() => setShowVersionHistory(false)}
-        />
-      )}
+        {/* Version History Modal */}
+        {showVersionHistory && (
+          <VersionHistoryModal
+            file={file}
+            onClose={() => setShowVersionHistory(false)}
+          />
+        )}
+      </div>
     </div>
   );
 };

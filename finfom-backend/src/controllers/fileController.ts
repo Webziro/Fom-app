@@ -519,6 +519,34 @@ export const deleteFile = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// Verify file password function
+export const verifyFilePassword = async (req: AuthRequest, res: Response) => {
+  try {
+    const file = await File.findById(req.params.id).select('+password');
+    if (!file) {
+      return res.status(404).json({ success: false, message: 'File not found' });
+    }
+
+    if (file.visibility !== 'password') {
+      return res.status(400).json({ success: false, message: 'File is not password protected' });
+    }
+
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ success: false, message: 'Password required' });
+    }
+
+    const isMatch = await file.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Incorrect password' });
+    }
+
+    res.json({ success: true, message: 'Password correct' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 // Get public files with pagination and search function
 export const getPublicFiles = async (req: AuthRequest, res: Response) => {
   try {

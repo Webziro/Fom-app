@@ -1,5 +1,5 @@
-import ShareModal from '../components/files/ShareModal';  // New
-import { Share2 } from 'lucide-react';  // Add to your existing Lucide imports
+import ShareModal from '../components/files/ShareModal'; 
+import { Share2 } from 'lucide-react';  
 import { useState, useContext, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { filesAPI } from '../api/files';
@@ -44,106 +44,106 @@ const FilesPage = () => {
   
 
 
-  // Close menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setOpenMenuId(null);
-      }
-    };
-  document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+// Close menu when clicking outside
+useEffect(() => {
+  const handleClickOutside = (event) => {
+    if (menuRef.current && !menuRef.current.contains(event.target)) {
+      setOpenMenuId(null);
+    }
+  };
+document.addEventListener('mousedown', handleClickOutside);
+  return () => document.removeEventListener('mousedown', handleClickOutside);
+}, []);
 
-  // Fetch files with react-query
-  const { data, isLoading } = useQuery({
+// Fetch files with react-query
+const { data, isLoading } = useQuery({
   queryKey: ['accessibleFiles', searchTerm],
   queryFn: () => filesAPI.getAllAccessibleFiles({ search: searchTerm, limit: 50 }),
 });
 
-  // Fetch folders with react-query
-  const { data: foldersData } = useQuery({
-    queryKey: ['folders'],
-    queryFn: filesAPI.getMyFolders,
-  });
-  const folders = foldersData?.data?.data || [];
+// Fetch folders with react-query
+const { data: foldersData } = useQuery({
+  queryKey: ['folders'],
+  queryFn: filesAPI.getMyFolders,
+});
+const folders = foldersData?.data?.data || [];
 
-  // Delete mutation for files
-  const deleteMutation = useMutation({
-    mutationFn: filesAPI.deleteFile,
-    onSuccess: () => {
-      toast.success('File deleted successfully');
-      queryClient.invalidateQueries({ queryKey: ['myFiles'] });
-      setOpenMenuId(null);
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to delete file');
-    },
-  });
-  const files = data?.data?.data || [];
+// Delete mutation for files
+const deleteMutation = useMutation({
+  mutationFn: filesAPI.deleteFile,
+  onSuccess: () => {
+    toast.success('File deleted successfully');
+    queryClient.invalidateQueries({ queryKey: ['myFiles'] });
+    setOpenMenuId(null);
+  },
+  onError: (error) => {
+    toast.error(error.response?.data?.message || 'Failed to delete file');
+  },
+});
+const files = data?.data?.data || [];
 
-  // New state for Share Modal
-  const [shareFile, setShareFile] = useState(null);  // New
+// New state for Share Modal
+const [shareFile, setShareFile] = useState(null);  // New
 
-  const handleDownload = async (fileId) => {
-    try {
-      const response = await filesAPI.downloadFile(fileId);
+const handleDownload = async (fileId) => {
+  try {
+    const response = await filesAPI.downloadFile(fileId);
 
-      // Create blob URL from response
-      const blob = new Blob([response.data]);
-      const url = window.URL.createObjectURL(blob);
+    // Create blob URL from response
+const blob = new Blob([response.data]);
+const url = window.URL.createObjectURL(blob);
 
-      // Get filename from Content-Disposition header or use default
-      const contentDisposition = response.headers['content-disposition'];
-      let fileName = 'download';
-      if (contentDisposition) {
-        const fileNameMatch = contentDisposition.match(/filename="(.+)"/); if (fileNameMatch) {
-          fileName = fileNameMatch[1];
-        }
-      }
+// Get filename from Content-Disposition header or use default
+const contentDisposition = response.headers['content-disposition'];
+let fileName = 'download';
+if (contentDisposition) {
+  const fileNameMatch = contentDisposition.match(/filename="(.+)"/); if (fileNameMatch) {
+    fileName = fileNameMatch[1];
+  }
+}
 
-      // Create temporary link and trigger download
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
+// Create temporary link and trigger download
+const link = document.createElement('a');
+link.href = url;
+link.download = fileName;
+document.body.appendChild(link);
+link.click();
 
-      // Cleanup
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+// Cleanup
+document.body.removeChild(link);
+window.URL.revokeObjectURL(url);
 
-      toast.success('Download started');
-      setOpenMenuId(null);
-    } catch (error) {
-      toast.error('Failed to download file');
-      console.error('Download error:', error);
-    }
-  };
+toast.success('Download started');
+setOpenMenuId(null);
+} catch (error) {
+toast.error('Failed to download file');
+console.error('Download error:', error);
+}
+};
 
-  // Delete handler
-  const handleDelete = (fileId) => {
-    if (window.confirm('Are you sure you want to delete this file?')) {
-      deleteMutation.mutate(fileId);
-    }
-  };
+// Delete handler
+const handleDelete = (fileId) => {
+  if (window.confirm('Are you sure you want to delete this file?')) {
+    deleteMutation.mutate(fileId);
+  }
+};
 
-  //toggle menu
-  const toggleMenu = (fileId) => {
-    setOpenMenuId(openMenuId === fileId ? null : fileId);
-  };
+//toggle menu
+const toggleMenu = (fileId) => {
+  setOpenMenuId(openMenuId === fileId ? null : fileId);
+};
 
-  return (
-    <Layout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h1 className="text-3xl font-bold text-gray-900">Files</h1>
-          <Button onClick={() => setShowUpload(true)} className="flex items-center gap-2">
-            <Upload className="w-5 h-5" />
-            Upload File
-          </Button>
-        </div>
+return (
+  <Layout>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-3xl font-bold text-gray-900">Files</h1>
+        <Button onClick={() => setShowUpload(true)} className="flex items-center gap-2">
+          <Upload className="w-5 h-5" />
+          Upload File
+        </Button>
+      </div>
 
         {/* Search Bar */}
         <div className="card dark:bg-gray-800 p-4">
@@ -165,48 +165,48 @@ const FilesPage = () => {
           </div>
         </div>
 
-        {/* Folders Section */}
-        {folders.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">My Folders</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {folders.map((folder) => (
-                <div
-                  key={folder._id}
-                  className="bg-white dark:bg-gray-800 rounded-xl shadow hover:shadow-lg transition-shadow p-6 border border-gray-200 hover:border-primary-300 relative group"
-                >
-                  {/* Three-Dots Button */}
-                  <div className="absolute top-2 right-2 z-10">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation(); // Prevent navigating to folder view
-                        setSelectedFolder(folder);
-                      }}
-                      className="p-2 hover:bg-gray-100 rounded-lg opacity-0 group-hover:opacity-100 transition"
-                    >
-                      <MoreVertical className="w-5 h-5 text-gray-400" />
-                    </button>
-                  </div>
-
-                  {/* Card Content - Click to open folder */}
-                  <div
-                    className="h-full cursor-pointer"
-                    onClick={() => navigate(`/folders/${folder._id}`)}
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <FolderOpen className="w-10 h-10 text-primary-600" />
-                      <h3 className="font-medium text-gray-700 dark:text-gray-100">{folder.title}</h3>
-                    </div>
-                    {folder.description && <p className="text-sm text-gray-600 dark:text-gray-100">{folder.description}</p>}
-                    <p className="text-xs text-gray-500 mt-3 dark:text-gray-100">
-                      Created {new Date(folder.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+{/* Folders Section */}
+{folders.length > 0 && (
+  <div className="mb-8">
+    <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">My Folders</h2>
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      {folders.map((folder) => (
+        <div
+          key={folder._id}
+          className="bg-white dark:bg-gray-800 rounded-xl shadow hover:shadow-lg transition-shadow p-6 border border-gray-200 hover:border-primary-300 relative group"
+        >
+          {/* Three-Dots Button */}
+          <div className="absolute top-2 right-2 z-10">
+            <button
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent navigating to folder view
+                setSelectedFolder(folder);
+              }}
+              className="p-2 hover:bg-gray-100 rounded-lg opacity-0 group-hover:opacity-100 transition"
+            >
+              <MoreVertical className="w-5 h-5 text-gray-400" />
+            </button>
           </div>
-        )}
+
+      {/* Card Content - Click to open folder */}
+      <div
+        className="h-full cursor-pointer"
+        onClick={() => navigate(`/folders/${folder._id}`)}
+      >
+        <div className="flex items-center gap-3 mb-3">
+          <FolderOpen className="w-10 h-10 text-primary-600" />
+          <h3 className="font-medium text-gray-700 dark:text-gray-100">{folder.title}</h3>
+        </div>
+        {folder.description && <p className="text-sm text-gray-600 dark:text-gray-100">{folder.description}</p>}
+        <p className="text-xs text-gray-500 mt-3 dark:text-gray-100">
+          Created {new Date(folder.createdAt).toLocaleDateString()}
+        </p>
+      </div>
+    </div>
+  ))}
+</div>
+</div>
+)}
 
       {/* Files Grid */}
       {isLoading ? (

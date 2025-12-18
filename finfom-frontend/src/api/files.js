@@ -14,12 +14,6 @@ export const filesAPI = {
     return axios.get(`api/files/${id}`, { data: body });
   },
 
-  // Public versions (no auth token)
-  // getPublicFile: (id, password = '') => {
-  //   const body = password ? { password } : {};
-  //   return publicAxios.get(`api/files/${id}`, { data: body });
-  // },
-
   getPublicFile: (id, password = '') => {
   if (password) {
     // Use POST when password is provided
@@ -48,7 +42,7 @@ export const filesAPI = {
   updateFolder: (id, data) => axios.put(`api/files/folders/${id}`, data),
   deleteFolder: (id) => axios.delete(`api/files/folders/${id}`),
   getAllAccessibleFiles: (params = {}) => axios.get('api/files/accessible', { params }),
-
+  verifyFilePassword: (id, data) => axios.post(`api/files/${id}/verify-password`, data),
   // getAnalytics: () => axios.get('api/files/analytics')
 
   getAnalytics: () => {

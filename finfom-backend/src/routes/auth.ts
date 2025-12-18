@@ -3,6 +3,7 @@ import { register, login, getMe, updateProfile, changePassword, googleLogin, for
 import { protect } from '../middleware/auth';
 import { authLimiter } from '../middleware/rateLimiter';
 import { body } from 'express-validator';
+import { verifyFilePassword } from '../controllers/fileController';
 
 const router = express.Router();
 
@@ -25,5 +26,8 @@ router.put('/reset-password/:resettoken', resetPassword);
 router.get('/me', protect, getMe);
 router.put('/profile', protect, updateProfile);
 router.put('/password', protect, changePassword);
+
+//Verify password
+router.post('/:id/verify-password', protect, verifyFilePassword);
 
 export default router;

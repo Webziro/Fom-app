@@ -8,7 +8,7 @@ import {
   deleteFile,
   getPublicFiles,
   getAllAccessibleFiles,
-  getAnalytics,
+  getAnalytics, verifyFilePassword,
   createFolder, getMyFolders, updateFolder, deleteFolder, getFolder
 } from '../controllers/fileController';
 import { protect } from '../middleware/auth';
@@ -34,6 +34,9 @@ router.post('/:id/download', downloadLimiter, downloadFile);
 
 router.post('/:id/access', getFile); // For accessing password-protected files
 router.post('/:id/download', downloadLimiter, downloadFile);
+
+// Protected routes
+router.post('/:id/verify-password', protect, verifyFilePassword);
 
 
 router.post(
@@ -72,6 +75,7 @@ router.put('/folders/:id', protect, updateFolder);
 router.delete('/folders/:id', protect, deleteFolder);
 router.get('/folders/:id', protect, getFolder);
 router.get('/accessible', protect, getAllAccessibleFiles);
+router.post('/:id/verify-password', protect, verifyFilePassword);
 
 // Analytics route 
 // router.get('/analytics', protect, getAnalytics);
