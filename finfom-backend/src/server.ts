@@ -95,9 +95,9 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 
 const server = app.listen(PORT, () => {
-  logger.info(`🚀 Server running on port ${PORT}`);
-  logger.info(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
-  logger.info(`🌐 Allowed CORS Origins: ${allowedOrigins.join(', ')}`);
+  logger.info(`Server running on port ${PORT}`);
+  logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.info(`Allowed CORS Origins: ${allowedOrigins.join(', ')}`);
 });
 
 // Graceful shutdown
