@@ -195,10 +195,10 @@ const FilesPage = () => {
                   >
                     <div className="flex items-center gap-3 mb-3">
                       <FolderOpen className="w-10 h-10 text-primary-600" />
-                      <h3 className="font-medium text-gray-900">{folder.title}</h3>
+                      <h3 className="font-medium text-gray-700 dark:text-gray-100">{folder.title}</h3>
                     </div>
-                    {folder.description && <p className="text-sm text-gray-600">{folder.description}</p>}
-                    <p className="text-xs text-gray-500 mt-3">
+                    {folder.description && <p className="text-sm text-gray-600 dark:text-gray-100">{folder.description}</p>}
+                    <p className="text-xs text-gray-500 mt-3 dark:text-gray-100">
                       Created {new Date(folder.createdAt).toLocaleDateString()}
                     </p>
                   </div>
@@ -259,7 +259,7 @@ const FilesPage = () => {
         }
         setOpenMenuId(null);
       }}
-      className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left rounded-t-lg text-gray-400 dark:text-gray-300"
+      className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-500 text-left rounded-t-lg text-gray-800 dark:text-gray-200"
       disabled={file.visibility !== 'public' && !isOwner}
       style={{ opacity: (file.visibility !== 'public' && !isOwner) ? 0.5 : 1 }}
     >
@@ -274,7 +274,7 @@ const FilesPage = () => {
         setMoveFile(file);
         setOpenMenuId(null);
       }}
-      className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left border-t text-gray-900 dark:text-gray-300"
+      className="flex items-center gap-2 w-full px-4 py-2  hover:bg-gray-500 text-left rounded-t-lg text-gray-800 dark:text-gray-200"
     >
       <FolderOpen className="w-4 h-4" />
         Move to Folder
@@ -294,7 +294,7 @@ const FilesPage = () => {
         e.stopPropagation();
         handleDownload(file._id);
       }}
-      className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50 text-left border-t text-gray-900 dark:text-gray-300"
+      className="flex items-center gap-2 w-full px-4 py-2  hover:bg-gray-500 text-left rounded-t-lg text-gray-800 dark:text-gray-200"
     >
       <Download className="w-4 h-4" />
       Download
