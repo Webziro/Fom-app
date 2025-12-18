@@ -21,19 +21,14 @@ const systemGroups = [
 const seed = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI as string);
-    //console.log('Connected to MongoDB');
 
     for (const group of systemGroups) {
       const exists = await Group.findOne({ title: group.title });
       if (!exists) {
         await Group.create(group);
-        //console.log(`Created: ${group.displayName}`);
       } else {
-        //console.log(`Already exists: ${group.displayName}`);
       }
     }
-
-    //console.log('Seeding complete!');
     process.exit(0);
   } catch (error) {
     //console.error('Seeding failed:', error);

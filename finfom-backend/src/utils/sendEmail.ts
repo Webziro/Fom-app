@@ -7,15 +7,10 @@ interface EmailOptions {
 }
 
 const sendEmail = async (options: EmailOptions) => {
-    console.log('SMTP Config:', {
-        host: process.env.SMTP_HOST,
-        port: process.env.SMTP_PORT,
-        user: process.env.SMTP_EMAIL ? '***' : 'MISSING',
-        pass: process.env.SMTP_PASSWORD ? '***' : 'MISSING',
-    });
 
     const port = Number(process.env.SMTP_PORT);
     const secure = port === 465; // true for 465, false for other ports
+    
     // Google App Passwords often have spaces (e.g. "abcd efgh ijkl mnop"), but must be sent without them.
     const userPassword = process.env.SMTP_PASSWORD ? process.env.SMTP_PASSWORD.replace(/\s+/g, '') : '';
 
@@ -41,7 +36,6 @@ const sendEmail = async (options: EmailOptions) => {
 
     try {
         const info = await transporter.sendMail(message);
-        console.log('Message sent: %s', info.messageId);
     } catch (error) {
         console.error('Error sending email:', error);
         throw error;

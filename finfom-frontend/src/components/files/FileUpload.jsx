@@ -29,7 +29,6 @@ const FileUpload = ({ onSuccess, onClose }) => {
   const loadGroups = async () => {
     try {
       const response = await groupsAPI.getAllGroups();
-      console.log('Groups API response:', response.data); 
       setGroups(response.data.data || []);
     } catch (error) {
       console.error('Error loading groups:', error);

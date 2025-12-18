@@ -7,7 +7,6 @@ const seedSystemGroups = async () => {
     const existingSystemGroups = await Group.countDocuments({ isSystem: true });
 
     if (existingSystemGroups > 0) {
-      console.log('System groups already exist. Skipping seeding.');
       return;
     }
 
@@ -25,7 +24,6 @@ const seedSystemGroups = async () => {
     ];
 
     await Group.insertMany(systemGroups);
-    console.log(`Successfully seeded ${systemGroups.length} system groups.`);
   } catch (error) {
     console.error('Error seeding system groups:', error);
   } finally {
