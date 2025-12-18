@@ -1,10 +1,21 @@
 import { X, Download, Clock } from 'lucide-react';
 
+// Utility function to format bytes to human-readable string
+const formatBytes = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+// VersionHistoryModal Component
 const VersionHistoryModal = ({ file, onClose }) => {
   const versions = file.versions || [];
   const currentVersion = file.currentVersion || 1;
 
-  const allVersions = [
+  // Combine current version with previous versions
+const allVersions = [
     ...versions,
     {
       versionNumber: currentVersion,
@@ -37,7 +48,7 @@ const VersionHistoryModal = ({ file, onClose }) => {
                   <div className="bg-primary-100 dark:bg-primary-900/30 rounded-lg p-3">
                     <Clock className="w-6 h-6 text-primary-600" />
                   </div>
-                  <div>
+                  <div><p className="text-xs text-gray-500">{formatBytes(version.size || file.size)}</p>
                     <p className="font-medium">
                       Version {version.versionNumber}
                       {version.versionNumber === currentVersion && (

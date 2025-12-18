@@ -63,7 +63,6 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
     });
 
 if (existingFileForVersion) {
-  console.log(`New version detected for file ${existingFileForVersion._id}`);
 
   const newVersionNumber = (existingFileForVersion.currentVersion || 1) + 1;
   const finalTitle = (title?.trim() || originalname).trim();
@@ -144,7 +143,6 @@ if (existingFileForVersion) {
     });
 
     if (duplicateFile) {
-      console.log(`[DUPLICATE] File already exists: ${fileHash}`);
       return res.status(200).json({
         success: true,
         data: duplicateFile,
