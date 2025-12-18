@@ -47,6 +47,7 @@ export const filesAPI = {
   moveFileToFolder: (fileId, folderId) => axios.put(`api/files/${fileId}`, { folderId }),
   updateFolder: (id, data) => axios.put(`api/files/folders/${id}`, data),
   deleteFolder: (id) => axios.delete(`api/files/folders/${id}`),
+  getAllAccessibleFiles: (params = {}) => axios.get('api/files/accessible', { params }),
 
   // getAnalytics: () => axios.get('api/files/analytics')
 
