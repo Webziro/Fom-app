@@ -227,7 +227,14 @@ const FilesPage = () => {
         const isMenuOpen = openMenuId === file._id;
 
       return (
-        <div key={file._id} className="card hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setPreviewFile(file)}>
+        <div key={file._id} className="card hover:shadow-lg transition-shadow cursor-pointer" 
+          onClick={async () => {
+          await queryClient.invalidateQueries({ 
+            queryKey: ['myFiles'] 
+          });
+            setTimeout(() => setPreviewFile(file), 100);
+          }}
+        >
           <div className="flex items-start justify-between mb-3">
             <FileText className="w-8 h-8 text-primary-600" />
             
