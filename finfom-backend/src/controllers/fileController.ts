@@ -153,7 +153,6 @@ if (existingFileForVersion) {
     }
 
     // 3. Normal new file upload
-    console.log('Uploading new file (no duplicate or version found)');
 
     const uploadStream = cloudinary.uploader.upload_stream(
       { folder: 'finfom-uploads', resource_type: mimetype.startsWith('image/') ? 'image' : 'raw' },
@@ -348,8 +347,6 @@ export const downloadFile = async (req: AuthRequest, res: Response) => {
     // Increment downloads
     file.downloads += 1;
     await file.save();
-    console.log(`Download counted for file ${file._id}. New count: ${file.downloads}`);
-
   // === SEND DOWNLOAD NOTIFICATION ===
 if (!req.user || file.uploaderId.toString() !== req.user._id.toString()) {
   try {
@@ -373,8 +370,6 @@ if (!req.user || file.uploaderId.toString() !== req.user._id.toString()) {
         subject,
         message,
       });
-
-      console.log(`Download notification sent to ${uploader.email}`);
     }
   } catch (emailErr) {
     console.error('Failed to send download notification:', emailErr);
@@ -393,8 +388,6 @@ if (!req.user || file.uploaderId.toString() !== req.user._id.toString()) {
     // Add filename if possible
     const ext = file.title.split('.').pop() || 'pdf';
     downloadUrl += `.${ext}`;
-
-    console.log('Attempting download from:', downloadUrl);
 
     const response = await axios({
       method: 'GET',
@@ -551,7 +544,6 @@ export const getAnalytics = async (req: AuthRequest, res: Response) => {
     const files = await File.find({ uploaderId: userId });
  
     if (files.length > 0) {
-      console.log('Sample file uploaderId:', files[0].uploaderId.toString());
     }
 
     const totalDownloads = files.reduce((sum, file) => sum + (file.downloads || 0), 0);
