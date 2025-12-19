@@ -43,6 +43,7 @@ export const filesAPI = {
   deleteFolder: (id) => axios.delete(`api/files/folders/${id}`),
   getAllAccessibleFiles: (params = {}) => axios.get('api/files/accessible', { params }),
   verifyFilePassword: (id, data) => axios.post(`api/files/${id}/verify-password`, data),
+  restoreFileVersion: (id, data) => axios.post(`api/files/${id}/restore-version`, data),
   // getAnalytics: () => axios.get('api/files/analytics')
 
   getAnalytics: () => {

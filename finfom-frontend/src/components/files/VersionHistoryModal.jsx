@@ -1,21 +1,27 @@
-import { X, Download, Clock } from 'lucide-react';
+import { X, Download, Clock, RotateCcw } from 'lucide-react';
+import { useState } from 'react';
+import toast from 'react-hot-toast';
+import { filesAPI } from '../../api/files';
+import { useQueryClient } from '@tanstack/react-query';
 
-// Utility function to format bytes to human-readable string
+// Utility function to format bytes
 const formatBytes = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-  };
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+};
 
-// VersionHistoryModal Component
 const VersionHistoryModal = ({ file, onClose }) => {
+  const [restoring, setRestoring] = useState(false);
+  const queryClient = useQueryClient();
+
   const versions = file.versions || [];
   const currentVersion = file.currentVersion || 1;
 
   // Combine current version with previous versions
-const allVersions = [
+  const allVersions = [
     ...versions,
     {
       versionNumber: currentVersion,
@@ -28,6 +34,26 @@ const allVersions = [
 
   const handleDownloadVersion = (url) => {
     window.open(url, '_blank');
+  };
+
+  const handleRestore = async (versionNumber) => {
+    if (!window.confirm(`Restore version ${versionNumber}? This will make it the current version.`)) {
+      return;
+    }
+
+    setRestoring(true);
+    try {
+      const response = await filesAPI.restoreFileVersion(file._id, { versionNumber });
+
+      toast.success(response.data.message || 'Version restored!');
+      onClose();
+      // Refresh file list
+      queryClient.invalidateQueries({ queryKey: ['myFiles'] });
+    } catch (error) {
+      toast.error('Failed to restore version');
+    } finally {
+      setRestoring(false);
+    }
   };
 
   return (
@@ -48,7 +74,7 @@ const allVersions = [
                   <div className="bg-primary-100 dark:bg-primary-900/30 rounded-lg p-3">
                     <Clock className="w-6 h-6 text-primary-600" />
                   </div>
-                  <div><p className="text-xs text-gray-500">{formatBytes(version.size || file.size)}</p>
+                  <div>
                     <p className="font-medium">
                       Version {version.versionNumber}
                       {version.versionNumber === currentVersion && (
@@ -56,18 +82,29 @@ const allVersions = [
                       )}
                     </p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Uploaded {new Date(version.uploadedAt).toLocaleDateString()} 
+                      Uploaded {new Date(version.uploadedAt).toLocaleDateString()}
                       {version.uploadedBy?.username && ` by ${version.uploadedBy.username}`}
                     </p>
                     <p className="text-xs text-gray-500">{formatBytes(version.size || file.size)}</p>
                   </div>
                 </div>
-                <button
-                  onClick={() => handleDownloadVersion(version.secureUrl)}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-                >
-                  <Download className="w-5 h-5 text-gray-600" />
-                </button>
+                <div className="flex gap-2">
+                  {version.versionNumber !== currentVersion && (
+                    <button
+                      onClick={() => handleRestore(version.versionNumber)}
+                      disabled={restoring}
+                      className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {restoring ? 'Restoring...' : 'Restore'}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleDownloadVersion(version.secureUrl)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                  >
+                    <Download className="w-5 h-5 text-gray-600" />
+                  </button>
+                </div>
               </div>
             </div>
           ))}
