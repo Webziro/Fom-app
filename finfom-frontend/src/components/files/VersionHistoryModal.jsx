@@ -13,6 +13,7 @@ const formatBytes = (bytes) => {
   return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
 };
 
+// VersionHistoryModal Component
 const VersionHistoryModal = ({ file, onClose }) => {
   const [restoring, setRestoring] = useState(false);
   const queryClient = useQueryClient();
