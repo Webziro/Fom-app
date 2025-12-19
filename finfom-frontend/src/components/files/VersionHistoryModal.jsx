@@ -115,5 +115,5 @@ const VersionHistoryModal = ({ file, onClose }) => {
     </div>
   );
 };
-
+// Export the VersionHistoryModal component
 export default VersionHistoryModal;
