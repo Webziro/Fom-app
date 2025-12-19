@@ -39,6 +39,8 @@ router.post('/:id/download', downloadLimiter, downloadFile);
 router.post('/:id/verify-password', protect, verifyFilePassword);
 // Version restoration route
 router.post('/:id/restore-version', protect, restoreFileVersion);
+// Revert to previous version route
+router.post('/:id/revert-previous', protect, revertToPreviousVersion);
 
 
 router.post(
