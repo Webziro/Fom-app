@@ -57,6 +57,7 @@ const VersionHistoryModal = ({ file, onClose }) => {
     }
   };
 
+  // Render modal for version history
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6">
