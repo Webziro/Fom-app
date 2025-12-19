@@ -20,7 +20,6 @@ const VersionHistoryModal = ({ file, onClose }) => {
   const versions = file.versions || [];
   const currentVersion = file.currentVersion || 1;
 
-  // Combine current version with previous versions
   const allVersions = [
     ...versions,
     {
