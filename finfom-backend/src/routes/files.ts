@@ -8,7 +8,7 @@ import {
   deleteFile,
   getPublicFiles,
   getAllAccessibleFiles,
-  getAnalytics, verifyFilePassword, restoreFileVersion,
+  getAnalytics, verifyFilePassword, restoreFileVersion, revertToPreviousVersion,
   createFolder, getMyFolders, updateFolder, deleteFolder, getFolder
 } from '../controllers/fileController';
 import { protect } from '../middleware/auth';
