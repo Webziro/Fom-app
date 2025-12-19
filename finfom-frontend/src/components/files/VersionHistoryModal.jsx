@@ -36,6 +36,7 @@ const VersionHistoryModal = ({ file, onClose }) => {
     window.open(url, '_blank');
   };
 
+  // Handle restoring a version
   const handleRestore = async (versionNumber) => {
     if (!window.confirm(`Restore version ${versionNumber}? This will make it the current version.`)) {
       return;
