@@ -547,6 +547,61 @@ export const verifyFilePassword = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// Restore file version function
+export const restoreFileVersion = async (req: AuthRequest, res: Response) => {
+  try {
+    const file = await File.findById(req.params.id);
+    if (!file) {
+      return res.status(404).json({ success: false, message: 'File not found' });
+    }
+
+    if (file.uploaderId.toString() !== req.user!._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    const { versionNumber } = req.body;
+
+    // Find the version to restore
+    const versionToRestore = file.versions.find(v => v.versionNumber === versionNumber);
+    if (!versionToRestore) {
+      return res.status(404).json({ success: false, message: 'Version not found' });
+    }
+
+    // Save current as new version (backup)
+    const newVersionNumber = (file.currentVersion || 1) + 1;
+
+    file.versions.push({
+      versionNumber: file.currentVersion || 1,
+      uploadedAt: new Date(),
+      uploadedBy: req.user._id,
+      cloudinaryId: file.cloudinaryId,
+      url: file.url,
+      secureUrl: file.secureUrl,
+      size: file.size,
+      fileType: file.fileType,
+    });
+
+    // Restore old version to current
+    file.currentVersion = newVersionNumber;
+    file.cloudinaryId = versionToRestore.cloudinaryId;
+    file.url = versionToRestore.url;
+    file.secureUrl = versionToRestore.secureUrl;
+    file.size = versionToRestore.size;
+    file.fileType = versionToRestore.fileType;
+    file.updatedAt = new Date();
+
+    await file.save();
+
+    res.json({
+      success: true,
+      data: file,
+      message: `Restored version ${versionNumber}. New version created (v${newVersionNumber})`,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to restore version', error: error.message });
+  }
+};
+
 // Get public files with pagination and search function
 export const getPublicFiles = async (req: AuthRequest, res: Response) => {
   try {

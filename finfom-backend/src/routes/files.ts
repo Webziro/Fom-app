@@ -8,7 +8,7 @@ import {
   deleteFile,
   getPublicFiles,
   getAllAccessibleFiles,
-  getAnalytics, verifyFilePassword,
+  getAnalytics, verifyFilePassword, restoreFileVersion,
   createFolder, getMyFolders, updateFolder, deleteFolder, getFolder
 } from '../controllers/fileController';
 import { protect } from '../middleware/auth';
@@ -37,6 +37,8 @@ router.post('/:id/download', downloadLimiter, downloadFile);
 
 // Protected routes
 router.post('/:id/verify-password', protect, verifyFilePassword);
+// Version restoration route
+router.post('/:id/restore-version', protect, restoreFileVersion);
 
 
 router.post(
