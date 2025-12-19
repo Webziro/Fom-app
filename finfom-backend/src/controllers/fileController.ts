@@ -214,6 +214,63 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// Revert to previous version function
+export const revertToPreviousVersion = async (req: AuthRequest, res: Response) => {
+  try {
+    const file = await File.findById(req.params.id);
+    if (!file) {
+      return res.status(404).json({ success: false, message: 'File not found' });
+    }
+
+    if (file.uploaderId.toString() !== req.user!._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    if (file.currentVersion <= 1) {
+      return res.status(400).json({ success: false, message: 'No previous version to revert to' });
+    }
+
+    // Get the previous version (currentVersion - 1)
+    const previousVersion = file.versions.find(v => v.versionNumber === file.currentVersion - 1);
+    if (!previousVersion) {
+      return res.status(404).json({ success: false, message: 'Previous version not found' });
+    }
+
+    // Save current as new version (backup)
+    const newVersionNumber = file.currentVersion + 1;
+
+    file.versions.push({
+      versionNumber: file.currentVersion,
+      uploadedAt: new Date(),
+      uploadedBy: req.user._id,
+      cloudinaryId: file.cloudinaryId,
+      url: file.url,
+      secureUrl: file.secureUrl,
+      size: file.size,
+      fileType: file.fileType,
+    });
+
+    // Restore previous version to current
+    file.currentVersion = newVersionNumber;
+    file.cloudinaryId = previousVersion.cloudinaryId;
+    file.url = previousVersion.url;
+    file.secureUrl = previousVersion.secureUrl;
+    file.size = previousVersion.size;
+    file.fileType = previousVersion.fileType;
+    file.updatedAt = new Date();
+
+    await file.save();
+
+    res.json({
+      success: true,
+      data: file,
+      message: `Reverted to previous version (${previousVersion.versionNumber}). New backup version created (v${newVersionNumber})`,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to revert version', error: error.message });
+  }
+};
+
 // Get user's files with pagination and search function
 export const getMyFiles = async (req: AuthRequest, res: Response) => {
   try {
