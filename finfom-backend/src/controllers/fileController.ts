@@ -128,7 +128,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
             existingFileForVersion.fileHash = fileHash;
             existingFileForVersion.updatedAt = new Date();
 
-            
+            // Save changes
             await existingFileForVersion.save();
 
             res.status(200).json({
