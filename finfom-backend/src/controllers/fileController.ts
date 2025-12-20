@@ -49,7 +49,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 
     const { buffer, originalname, mimetype, size } = req.file;
 
-    // Calculate hash
+    // Calculate hash for deduplication
     const fileHash = calculateFileHash(buffer);
 
     // 1. Check for versioning: same title, same user, same group (create new version if content differs)
@@ -61,7 +61,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
       groupId,
     });
 
-if (existingFileForVersion) {
+   if (existingFileForVersion) {
   console.log(`New version detected for file "${finalTitle}" (ID: ${existingFileForVersion._id})`);
 
   const newVersionNumber = (existingFileForVersion.currentVersion || 1) + 1;
@@ -71,7 +71,9 @@ if (existingFileForVersion) {
     async (error, result) => {
       if (error || !result) {
         console.error('Cloudinary upload failed:', error);
-        return res.status(500).json({ success: false, message: 'Failed to upload new version' });
+        if (!res.headersSent) {
+          return res.status(500).json({ success: false, message: 'Failed to upload new version' });
+        }
       }
 
       try {
@@ -113,18 +115,23 @@ if (existingFileForVersion) {
 
         // Save the fresh document
         await freshFile.save();
-         console.log('Versions array after save:', freshFile.versions);
 
-        res.status(200).json({
-          success: true,
-          data: freshFile,
-          message: `New version uploaded (v${newVersionNumber})`,
-          isNewVersion: true,
-        });
+        console.log('Versions array after save:', freshFile.versions);
+
+        if (!res.headersSent) {
+          res.status(200).json({
+            success: true,
+            data: freshFile,
+            message: `New version uploaded (v${newVersionNumber})`,
+            isNewVersion: true,
+          });
+        }
       } catch (dbError: any) {
         console.error('Version save error:', dbError.message);
         await cloudinary.uploader.destroy(result.public_id).catch(() => {});
-        res.status(500).json({ success: false, message: 'Failed to save new version', error: dbError.message });
+        if (!res.headersSent) {
+          res.status(500).json({ success: false, message: 'Failed to save new version', error: dbError.message });
+        }
       }
     }
   );
@@ -133,9 +140,9 @@ if (existingFileForVersion) {
   stream.push(buffer);
   stream.push(null);
   stream.pipe(uploadStream);
-
 }
-    // 2. This Check for identical content (same hash) — reuse existing file (save storage)
+
+    // 2. Check for identical content (same hash) — reuse existing file (save storage)
     const identicalDuplicate = await File.findOne({
       fileHash,
       size,
