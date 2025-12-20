@@ -135,7 +135,7 @@ if (existingFileForVersion) {
   stream.pipe(uploadStream);
 
 }
-    // 2. Check for identical content (same hash) — reuse existing file (save storage)
+    // 2. This Check for identical content (same hash) — reuse existing file (save storage)
     const identicalDuplicate = await File.findOne({
       fileHash,
       size,
