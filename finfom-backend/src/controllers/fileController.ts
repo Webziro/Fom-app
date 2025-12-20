@@ -19,7 +19,6 @@ const calculateFileHash = (buffer: Buffer): string => {
 
 
 // Upload file controller with versioning and duplicate detection
-
 export const uploadFile = async (req: AuthRequest, res: Response) => {
   try {
     // Basic validation
@@ -50,10 +49,10 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 
     const { buffer, originalname, mimetype, size } = req.file;
 
-    // Calculate hash for deduplication
+    // Calculate hash
     const fileHash = calculateFileHash(buffer);
 
-    // 1. Check for versioning: same title, same user, same group (regardless of content)
+    // 1. Check for versioning: same title, same user, same group (create new version if content differs)
     const finalTitle = (title?.trim() || originalname).trim();
 
     const existingFileForVersion = await File.findOne({
@@ -62,81 +61,82 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
       groupId,
     });
 
-  if (existingFileForVersion) {
+    if (existingFileForVersion) {
   console.log(`New version detected for file "${finalTitle}" (ID: ${existingFileForVersion._id})`);
 
   const newVersionNumber = (existingFileForVersion.currentVersion || 1) + 1;
 
-  const uploadStream = cloudinary.uploader.upload_stream(
-    { folder: 'finfom-uploads', resource_type: mimetype.startsWith('image/') ? 'image' : 'raw' },
-    async (error, result) => {
-      if (error || !result) {
-        console.error('Cloudinary upload failed:', error);
-        return res.status(500).json({ success: false, message: 'Failed to upload new version' });
-      }
-
-      try {
-        // Create old version object
-        const oldVersion = {
-          versionNumber: existingFileForVersion.currentVersion || 1,
-          uploadedAt: new Date(),
-          uploadedBy: req.user._id,
-          cloudinaryId: existingFileForVersion.cloudinaryId,
-          url: existingFileForVersion.url,
-          secureUrl: existingFileForVersion.secureUrl,
-          size: existingFileForVersion.size,
-          fileType: existingFileForVersion.fileType,
-        };
-
-        // Atomic findOneAndUpdate: push old version and update fields (returns updated document)
-        const updatedFile = await File.findOneAndUpdate(
-          { _id: existingFileForVersion._id },
-          {
-            $push: { versions: oldVersion },
-            $set: {
-              currentVersion: newVersionNumber,
-              cloudinaryId: result.public_id,
-              url: result.url,
-              secureUrl: result.secure_url,
-              size,
-              fileType: mimetype,
-              title: finalTitle,
-              description: description.trim(),
-              fileHash,
-              updatedAt: new Date(),
-            },
-          },
-          { new: true } // Return the updated document
-        );
-
-        if (!updatedFile) {
-          throw new Error('File not found after update');
+  try {
+    // Wait for Cloudinary upload
+    const result = await new Promise<any>((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { folder: 'finfom-uploads', resource_type: mimetype.startsWith('image/') ? 'image' : 'raw' },
+        (error, result) => {
+          if (error || !result) {
+            reject(error || new Error('Cloudinary upload failed'));
+          } else {
+            resolve(result);
+          }
         }
+      );
 
-        console.log('Updated file versions:', updatedFile.versions);
+      const stream = new Readable();
+      stream.push(buffer);
+      stream.push(null);
+      stream.pipe(uploadStream);
+    });
 
-        res.status(200).json({
-          success: true,
-          data: updatedFile,
-          message: `New version uploaded (v${newVersionNumber})`,
-          isNewVersion: true,
-        });
-      } catch (dbError: any) {
-        console.error('Version save error:', dbError.message);
-        await cloudinary.uploader.destroy(result.public_id).catch(() => {});
-        res.status(500).json({ success: false, message: 'Failed to save new version', error: dbError.message });
-      }
+    // Atomic update
+    const oldVersion = {
+      versionNumber: existingFileForVersion.currentVersion || 1,
+      uploadedAt: new Date(),
+      uploadedBy: req.user._id,
+      cloudinaryId: existingFileForVersion.cloudinaryId,
+      url: existingFileForVersion.url,
+      secureUrl: existingFileForVersion.secureUrl,
+      size: existingFileForVersion.size,
+      fileType: existingFileForVersion.fileType,
+    };
+
+    const updatedFile = await File.findOneAndUpdate(
+      { _id: existingFileForVersion._id },
+      {
+        $push: { versions: oldVersion },
+        $set: {
+          currentVersion: newVersionNumber,
+          cloudinaryId: result.public_id,
+          url: result.url,
+          secureUrl: result.secure_url,
+          size,
+          fileType: mimetype,
+          title: finalTitle,
+          description: description.trim(),
+          fileHash,
+          updatedAt: new Date(),
+        },
+      },
+      { new: true }
+    );
+
+    if (!updatedFile) {
+      throw new Error('File not found after update');
     }
-  );
 
-  const stream = new Readable();
-  stream.push(buffer);
-  stream.push(null);
-  stream.pipe(uploadStream);
+    console.log('Updated file versions:', updatedFile.versions);
+
+    res.status(200).json({
+      success: true,
+      data: updatedFile,
+      message: `New version uploaded (v${newVersionNumber})`,
+      isNewVersion: true,
+    });
+  } catch (error: any) {
+    console.error('Version processing error:', error.message);
+    res.status(500).json({ success: false, message: 'Failed to process new version', error: error.message });
+  }
 
   return;
 }
-
 
     // 2. Check for identical content (same hash) — reuse existing file (save storage)
     const identicalDuplicate = await File.findOne({
