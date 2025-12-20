@@ -230,14 +230,19 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
       return res.status(400).json({ success: false, message: 'No previous version to revert to' });
     }
 
-    // Get the previous version (currentVersion - 1)
+    // Get previous version
     const previousVersion = file.versions.find(v => v.versionNumber === file.currentVersion - 1);
     if (!previousVersion) {
       return res.status(404).json({ success: false, message: 'Previous version not found' });
     }
 
-    // Save current as new version (backup)
+    // Save current as new backup version
     const newVersionNumber = file.currentVersion + 1;
+
+    if (!Array.isArray(file.versions)) {
+      file.versions = [];
+    }
+    file.markModified('versions');
 
     file.versions.push({
       versionNumber: file.currentVersion,
@@ -250,13 +255,14 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
       fileType: file.fileType,
     });
 
-    // Restore previous version to current
+    // Restore previous to current
     file.currentVersion = newVersionNumber;
     file.cloudinaryId = previousVersion.cloudinaryId;
     file.url = previousVersion.url;
     file.secureUrl = previousVersion.secureUrl;
     file.size = previousVersion.size;
     file.fileType = previousVersion.fileType;
+    file.fileHash = previousVersion.fileHash || file.fileHash; // Fix validation
     file.updatedAt = new Date();
 
     await file.save();
@@ -267,6 +273,7 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
       message: `Reverted to previous version (${previousVersion.versionNumber}). New backup version created (v${newVersionNumber})`,
     });
   } catch (error: any) {
+    console.error('Revert error:', error.message);
     res.status(500).json({ success: false, message: 'Failed to revert version', error: error.message });
   }
 };
