@@ -273,11 +273,11 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
 
 // Get user's files with pagination and search function
 export const getMyFiles = async (req: AuthRequest, res: Response) => {
-  try {
-    const { page = 1, limit = 10, search, folderId } = req.query;
-    const query: any = {
-      uploaderId: req.user!._id,  // Only user's files
-    };
+  try {
+    const { page = 1, limit = 10, search, folderId } = req.query;
+    const query: any = {
+    uploaderId: req.user!._id,  // Only user's files
+   };
 
     if (folderId) {
       query.folderId = folderId;  // Filter by specific folder

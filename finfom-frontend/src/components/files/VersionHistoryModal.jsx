@@ -13,7 +13,6 @@ const formatBytes = (bytes) => {
   return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
 };
 
-// VersionHistoryModal Component
 const VersionHistoryModal = ({ file, onClose }) => {
   const [restoring, setRestoring] = useState(false);
   const queryClient = useQueryClient();
@@ -36,7 +35,6 @@ const VersionHistoryModal = ({ file, onClose }) => {
     window.open(url, '_blank');
   };
 
-  // Handle restoring a version
   const handleRestore = async (versionNumber) => {
     if (!window.confirm(`Restore version ${versionNumber}? This will make it the current version.`)) {
       return;
@@ -48,7 +46,6 @@ const VersionHistoryModal = ({ file, onClose }) => {
 
       toast.success(response.data.message || 'Version restored!');
       onClose();
-      // Refresh file list
       queryClient.invalidateQueries({ queryKey: ['myFiles'] });
     } catch (error) {
       toast.error('Failed to restore version');
@@ -58,25 +55,25 @@ const VersionHistoryModal = ({ file, onClose }) => {
   };
 
   const handleRevertPrevious = async () => {
-  if (!window.confirm('Revert to the previous version? This will make the last version current.')) {
-    return;
-  }
+    if (!window.confirm('Revert to the previous version? This will make the last version current.')) {
+      return;
+    }
 
-  setRestoring(true);
-  try {
-    const response = await filesAPI.revertToPreviousVersion(file._id);
+    setRestoring(true);
+    try {
+      const response = await filesAPI.revertToPreviousVersion(file._id);
 
-    toast.success(response.data.message || 'Reverted to previous version!');
-    onClose();
-    queryClient.invalidateQueries({ queryKey: ['myFiles'] });
-  } catch (error) {
-    toast.error('Failed to revert version');
-  } finally {
-    setRestoring(false);
-  }
-};
+      toast.success(response.data.message || 'Reverted to previous version!');
+      onClose();
+      queryClient.invalidateQueries({ queryKey: ['myFiles'] });
+    } catch (error) {
+      console.error('Revert error:', error.response?.data || error);
+      toast.error(error.response?.data?.message || 'Failed to revert version');
+    } finally {
+      setRestoring(false);
+    }
+  };
 
-  // Render modal for version history
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6">
@@ -87,9 +84,22 @@ const VersionHistoryModal = ({ file, onClose }) => {
           </button>
         </div>
 
+        {/* Revert to Previous Button - Only if >1 version */}
+        {currentVersion > 1 && (
+          <div className="mb-6 text-right">
+            <button
+              onClick={handleRevertPrevious}
+              disabled={restoring}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              {restoring ? 'Reverting...' : 'Revert to Previous Version'}
+            </button>
+          </div>
+        )}
+
         <div className="space-y-4">
           {allVersions.map((version) => (
-            <div key={version.versionNumber} className="border border-gray-200 dark:border-gray-700  rounded-lg p-4">
+            <div key={version.versionNumber} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="bg-primary-100 dark:bg-primary-900/30 rounded-lg p-3">
@@ -107,7 +117,7 @@ const VersionHistoryModal = ({ file, onClose }) => {
                       {version.uploadedBy?.username && ` by ${version.uploadedBy.username}`}
                     </p>
                     <p className="text-xs text-gray-500">{formatBytes(version.size || file.size)}</p>
-                  </div>  
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   {version.versionNumber !== currentVersion && (
@@ -119,20 +129,6 @@ const VersionHistoryModal = ({ file, onClose }) => {
                       {restoring ? 'Restoring...' : 'Restore'}
                     </button>
                   )}
-                  {/* Revert to Previous version */}
-                  {currentVersion > 1 && (
-                    <div className="mb-6 text-right">
-                      <button
-                        onClick={handleRevertPrevious}
-                        disabled={restoring}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 "
-                      >
-                        {restoring ? 'Reverting...' : 'Revert to Previous Version'}
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Click to Download version */}
                   <button
                     onClick={() => handleDownloadVersion(version.secureUrl)}
                     className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
@@ -148,5 +144,5 @@ const VersionHistoryModal = ({ file, onClose }) => {
     </div>
   );
 };
-// Export the VersionHistoryModal component
+
 export default VersionHistoryModal;
