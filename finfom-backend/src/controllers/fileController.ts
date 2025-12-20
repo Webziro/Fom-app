@@ -114,6 +114,8 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
               fileType: existingFileForVersion.fileType,
             });
 
+             existingFileForVersion.versions.push(oldVersion);
+
             // Update current
             existingFileForVersion.currentVersion = newVersionNumber;
             existingFileForVersion.cloudinaryId = result.public_id;
@@ -125,6 +127,10 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
             existingFileForVersion.description = description.trim();
             existingFileForVersion.fileHash = fileHash;
             existingFileForVersion.updatedAt = new Date();
+
+            console.log('Pushing old version:', oldVersion);
+            console.log('Saving file with versions:', existingFileForVersion.versions);
+
 
             await existingFileForVersion.save();
 
@@ -215,82 +221,75 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 };
 
 // Revert to previous version function
-if (existingFileForVersion) {
-  console.log(`New version detected for file ${existingFileForVersion._id}`);
-
-  const newVersionNumber = (existingFileForVersion.currentVersion || 1) + 1;
-  const finalTitle = (title?.trim() || originalname).trim();
-
-  const uploadStream = cloudinary.uploader.upload_stream(
-    { folder: 'finfom-uploads', resource_type: mimetype.startsWith('image/') ? 'image' : 'raw' },
-    async (error, result) => {
-      if (error || !result) {
-        console.error('Cloudinary upload failed:', error);
-        return res.status(500).json({ success: false, message: 'Failed to upload new version' });
-      }
-
-      try {
-        // SAFETY: Initialize versions array
-        if (!Array.isArray(existingFileForVersion.versions)) {
-          existingFileForVersion.versions = [];
-        }
-
-        // CRITICAL: Mark modified
-        existingFileForVersion.markModified('versions');
-
-        // Save old version
-        const oldVersion = {
-          versionNumber: existingFileForVersion.currentVersion || 1,
-          uploadedAt: new Date(),
-          uploadedBy: req.user._id,
-          cloudinaryId: existingFileForVersion.cloudinaryId,
-          url: existingFileForVersion.url,
-          secureUrl: existingFileForVersion.secureUrl,
-          size: existingFileForVersion.size,
-          fileType: existingFileForVersion.fileType,
-        };
-
-        existingFileForVersion.versions.push(oldVersion);
-
-        // Update current
-        existingFileForVersion.currentVersion = newVersionNumber;
-        existingFileForVersion.cloudinaryId = result.public_id;
-        existingFileForVersion.url = result.url;
-        existingFileForVersion.secureUrl = result.secure_url;
-        existingFileForVersion.size = size;
-        existingFileForVersion.fileType = mimetype;
-        existingFileForVersion.title = finalTitle;
-        existingFileForVersion.description = description.trim();
-        existingFileForVersion.fileHash = fileHash;
-        existingFileForVersion.updatedAt = new Date();
-
-        // Log before save
-        console.log('Pushing old version:', oldVersion);
-        console.log('Saving file with versions:', existingFileForVersion.versions);
-
-        await existingFileForVersion.save();
-
-        res.status(200).json({
-          success: true,
-          data: existingFileForVersion,
-          message: `New version uploaded (v${newVersionNumber})`,
-          isNewVersion: true,
-        });
-      } catch (dbError: any) {
-        console.error('Version save error:', dbError.message);
-        await cloudinary.uploader.destroy(result.public_id).catch(() => {});
-        res.status(500).json({ success: false, message: 'Failed to save new version', error: dbError.message });
-      }
+export const revertToPreviousVersion = async (req: AuthRequest, res: Response) => {
+  try {
+    const file = await File.findById(req.params.id);
+    if (!file) {
+      return res.status(404).json({ success: false, message: 'File not found' });
     }
-  );
 
-  const stream = new Readable();
-  stream.push(buffer);
-  stream.push(null);
-  stream.pipe(uploadStream);
+    if (file.uploaderId.toString() !== req.user!._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
 
-  return;
-}
+    if (file.currentVersion <= 1) {
+      return res.status(400).json({ success: false, message: 'No previous version to revert to' });
+    }
+
+    // Safety: Ensure versions is an array
+    if (!Array.isArray(file.versions)) {
+      file.versions = [];
+    }
+
+    // Log for debugging
+    console.log('File versions:', file.versions);
+    console.log('Current version:', file.currentVersion);
+    console.log('Looking for version:', file.currentVersion - 1);
+
+    // Find previous version
+    const previousVersion = file.versions.find(v => v.versionNumber === file.currentVersion - 1);
+
+    if (!previousVersion) {
+      console.error('Previous version not found in array');
+      return res.status(404).json({ success: false, message: 'Previous version not found in history' });
+    }
+
+    // Save current as new backup version
+    const newVersionNumber = file.currentVersion + 1;
+
+    file.versions.push({
+      versionNumber: file.currentVersion,
+      uploadedAt: new Date(),
+      uploadedBy: req.user._id,
+      cloudinaryId: file.cloudinaryId,
+      url: file.url,
+      secureUrl: file.secureUrl,
+      size: file.size,
+      fileType: file.fileType,
+    });
+
+    // Restore previous to current
+    file.currentVersion = newVersionNumber;
+    file.cloudinaryId = previousVersion.cloudinaryId;
+    file.url = previousVersion.url;
+    file.secureUrl = previousVersion.secureUrl;
+    file.size = previousVersion.size;
+    file.fileType = previousVersion.fileType;
+    file.fileHash = previousVersion.fileHash || file.fileHash;
+    file.updatedAt = new Date();
+
+    await file.save();
+
+    res.json({
+      success: true,
+      data: file,
+      message: `Reverted to previous version (${previousVersion.versionNumber}). New backup version created (v${newVersionNumber})`,
+    });
+  } catch (error: any) {
+    console.error('Revert error:', error.message);
+    res.status(500).json({ success: false, message: 'Failed to revert version', error: error.message });
+  }
+};
 
 // Get user's files with pagination and search function
 export const getMyFiles = async (req: AuthRequest, res: Response) => {
