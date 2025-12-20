@@ -113,6 +113,7 @@ if (existingFileForVersion) {
 
         // Save the fresh document
         await freshFile.save();
+         console.log('Versions array after save:', freshFile.versions);
 
         res.status(200).json({
           success: true,
@@ -133,7 +134,6 @@ if (existingFileForVersion) {
   stream.push(null);
   stream.pipe(uploadStream);
 
-  return;
 }
     // 2. Check for identical content (same hash) — reuse existing file (save storage)
     const identicalDuplicate = await File.findOne({
