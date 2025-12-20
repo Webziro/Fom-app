@@ -61,79 +61,77 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
       groupId,
     });
 
-  if (existingFileForVersion) {
+if (existingFileForVersion) {
   console.log(`New version detected for file "${finalTitle}" (ID: ${existingFileForVersion._id})`);
 
   const newVersionNumber = (existingFileForVersion.currentVersion || 1) + 1;
 
-  try {
-    // Wait for Cloudinary upload to complete
-    const result = await new Promise<any>((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        { folder: 'finfom-uploads', resource_type: mimetype.startsWith('image/') ? 'image' : 'raw' },
-        (error, result) => {
-          if (error || !result) {
-            reject(error || new Error('Cloudinary upload failed'));
-          } else {
-            resolve(result);
-          }
+  const uploadStream = cloudinary.uploader.upload_stream(
+    { folder: 'finfom-uploads', resource_type: mimetype.startsWith('image/') ? 'image' : 'raw' },
+    async (error, result) => {
+      if (error || !result) {
+        console.error('Cloudinary upload failed:', error);
+        return res.status(500).json({ success: false, message: 'Failed to upload new version' });
+      }
+
+      try {
+        // Reload the document after upload (fresh state)
+        const freshFile = await File.findById(existingFileForVersion._id);
+
+        if (!freshFile) {
+          throw new Error('File not found after upload');
         }
-      );
 
-      const stream = new Readable();
-      stream.push(buffer);
-      stream.push(null);
-      stream.pipe(uploadStream);
-    });
+        // Safety: Initialize versions array
+        if (!Array.isArray(freshFile.versions)) {
+          freshFile.versions = [];
+        }
 
-    // Atomic update
-    const oldVersion = {
-      versionNumber: existingFileForVersion.currentVersion || 1,
-      uploadedAt: new Date(),
-      uploadedBy: req.user._id,
-      cloudinaryId: existingFileForVersion.cloudinaryId,
-      url: existingFileForVersion.url,
-      secureUrl: existingFileForVersion.secureUrl,
-      size: existingFileForVersion.size,
-      fileType: existingFileForVersion.fileType,
-    };
+        // Save old version
+        freshFile.versions.push({
+          versionNumber: freshFile.currentVersion || 1,
+          uploadedAt: new Date(),
+          uploadedBy: req.user._id,
+          cloudinaryId: freshFile.cloudinaryId,
+          url: freshFile.url,
+          secureUrl: freshFile.secureUrl,
+          size: freshFile.size,
+          fileType: freshFile.fileType,
+        });
 
-    const updatedFile = await File.findOneAndUpdate(
-      { _id: existingFileForVersion._id },
-      {
-        $push: { versions: oldVersion },
-        $set: {
-          currentVersion: newVersionNumber,
-          cloudinaryId: result.public_id,
-          url: result.url,
-          secureUrl: result.secure_url,
-          size,
-          fileType: mimetype,
-          title: finalTitle,
-          description: description.trim(),
-          fileHash,
-          updatedAt: new Date(),
-        },
-      },
-      { new: true, runValidators: true } // Return updated doc + validate
-    );
+        // Update current
+        freshFile.currentVersion = newVersionNumber;
+        freshFile.cloudinaryId = result.public_id;
+        freshFile.url = result.url;
+        freshFile.secureUrl = result.secure_url;
+        freshFile.size = size;
+        freshFile.fileType = mimetype;
+        freshFile.title = finalTitle;
+        freshFile.description = description.trim();
+        freshFile.fileHash = fileHash;
+        freshFile.updatedAt = new Date();
 
-    if (!updatedFile) {
-      throw new Error('File not found after update');
+        // Save the fresh document
+        await freshFile.save();
+
+        res.status(200).json({
+          success: true,
+          data: freshFile,
+          message: `New version uploaded (v${newVersionNumber})`,
+          isNewVersion: true,
+        });
+      } catch (dbError: any) {
+        console.error('Version save error:', dbError.message);
+        await cloudinary.uploader.destroy(result.public_id).catch(() => {});
+        res.status(500).json({ success: false, message: 'Failed to save new version', error: dbError.message });
+      }
     }
+  );
 
-    console.log('Updated file versions:', updatedFile.versions);
-
-    res.status(200).json({
-      success: true,
-      data: updatedFile,
-      message: `New version uploaded (v${newVersionNumber})`,
-      isNewVersion: true,
-    });
-  } catch (error: any) {
-    console.error('Version processing error:', error.message);
-    res.status(500).json({ success: false, message: 'Failed to process new version', error: error.message });
-  }
+  const stream = new Readable();
+  stream.push(buffer);
+  stream.push(null);
+  stream.pipe(uploadStream);
 
   return;
 }
@@ -235,17 +233,17 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
       return res.status(400).json({ success: false, message: 'No previous version to revert to' });
     }
 
-    // Safety: Ensure versions is an array
+    // Safety: Initialize versions array
     if (!Array.isArray(file.versions)) {
       file.versions = [];
     }
 
-    // Log for debugging
+    file.markModified('versions');
+
     console.log('File versions:', file.versions);
     console.log('Current version:', file.currentVersion);
     console.log('Looking for version:', file.currentVersion - 1);
 
-    // Find previous version
     const previousVersion = file.versions.find(v => v.versionNumber === file.currentVersion - 1);
 
     if (!previousVersion) {
