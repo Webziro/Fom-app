@@ -230,6 +230,11 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
       return res.status(400).json({ success: false, message: 'No previous version to revert to' });
     }
 
+    // Safety: Ensure versions is an array
+    if (!Array.isArray(file.versions)) {
+      file.versions = [];
+    }
+
     // Get previous version
     const previousVersion = file.versions.find(v => v.versionNumber === file.currentVersion - 1);
     if (!previousVersion) {
@@ -238,11 +243,6 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
 
     // Save current as new backup version
     const newVersionNumber = file.currentVersion + 1;
-
-    if (!Array.isArray(file.versions)) {
-      file.versions = [];
-    }
-    file.markModified('versions');
 
     file.versions.push({
       versionNumber: file.currentVersion,
