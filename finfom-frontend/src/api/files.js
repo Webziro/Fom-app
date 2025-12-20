@@ -44,6 +44,7 @@ export const filesAPI = {
   getAllAccessibleFiles: (params = {}) => axios.get('api/files/accessible', { params }),
   verifyFilePassword: (id, data) => axios.post(`api/files/${id}/verify-password`, data),
   restoreFileVersion: (id, data) => axios.post(`api/files/${id}/restore-version`, data),
+  revertToPreviousVersion: (id) => axios.post(`/api/files/${id}/revert-previous`),
   // getAnalytics: () => axios.get('api/files/analytics')
 
   getAnalytics: () => {
