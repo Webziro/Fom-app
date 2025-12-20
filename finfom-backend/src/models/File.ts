@@ -152,5 +152,8 @@ FileSchema.methods.comparePassword = async function(candidatePassword: string) {
 };
 
 FileSchema.index({ title: 'text', description: 'text' });
+// Composite index for uploaderId, title, and groupId to optimize common queries
+FileSchema.index({ uploaderId: 1, title: 1, groupId: 1 });
+FileSchema.index({ fileHash: 1 });
 
 export default mongoose.model<IFile>('File', FileSchema);
