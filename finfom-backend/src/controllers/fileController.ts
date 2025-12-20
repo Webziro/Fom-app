@@ -128,10 +128,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
             existingFileForVersion.fileHash = fileHash;
             existingFileForVersion.updatedAt = new Date();
 
-            console.log('Pushing old version:', oldVersion);
-            console.log('Saving file with versions:', existingFileForVersion.versions);
-
-
+            
             await existingFileForVersion.save();
 
             res.status(200).json({
