@@ -235,10 +235,17 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
       file.versions = [];
     }
 
-    // Get previous version
+    // Log for debugging
+    console.log('File versions:', file.versions);
+    console.log('Current version:', file.currentVersion);
+    console.log('Looking for version:', file.currentVersion - 1);
+
+    // Find previous version
     const previousVersion = file.versions.find(v => v.versionNumber === file.currentVersion - 1);
+
     if (!previousVersion) {
-      return res.status(404).json({ success: false, message: 'Previous version not found' });
+      console.error('Previous version not found in array');
+      return res.status(404).json({ success: false, message: 'Previous version not found in history' });
     }
 
     // Save current as new backup version
@@ -262,7 +269,7 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
     file.secureUrl = previousVersion.secureUrl;
     file.size = previousVersion.size;
     file.fileType = previousVersion.fileType;
-    file.fileHash = previousVersion.fileHash || file.fileHash; // Fix validation
+    file.fileHash = previousVersion.fileHash || file.fileHash;
     file.updatedAt = new Date();
 
     await file.save();
