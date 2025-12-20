@@ -89,7 +89,7 @@ const VersionHistoryModal = ({ file, onClose }) => {
 
         <div className="space-y-4">
           {allVersions.map((version) => (
-            <div key={version.versionNumber} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            <div key={version.versionNumber} className="border border-gray-200 dark:border-gray-700  rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="bg-primary-100 dark:bg-primary-900/30 rounded-lg p-3">
@@ -125,7 +125,7 @@ const VersionHistoryModal = ({ file, onClose }) => {
                       <button
                         onClick={handleRevertPrevious}
                         disabled={restoring}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 "
                       >
                         {restoring ? 'Reverting...' : 'Revert to Previous Version'}
                       </button>
