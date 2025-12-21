@@ -13,7 +13,7 @@ export interface IVersion {
   fileType: string;
 }
 
-// --- UPDATED MAIN INTERFACE ---
+// --- UPDATED MAIN INTERFACE --
 export interface IFile extends Document {
   title: string;
   description?: string;
