@@ -49,7 +49,6 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
     });
 
     if (identicalDuplicate) {
-      console.log(`[DUPLICATE] Identical content already exists: ${fileHash}`);
       return res.status(200).json({
         success: true,
         data: identicalDuplicate,
@@ -66,16 +65,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
       groupId,
     });
 
-    console.log('Versioning query params:', {
-      title: finalTitle,
-      uploaderId: req.user._id.toString(),
-      groupId: groupId.toString(),
-    });
-    console.log('Found existing file for version:', existingFileForVersion ? 'YES' : 'NO', existingFileForVersion?._id);
-
     if (existingFileForVersion) {
-      console.log(`New version detected for file "${finalTitle}" (ID: ${existingFileForVersion._id})`);
-
       const newVersionNumber = (existingFileForVersion.currentVersion || 1) + 1;
 
       const uploadStream = cloudinary.uploader.upload_stream(
@@ -121,10 +111,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
             await freshFile.save();
 
             const savedFile = await File.findById(freshFile._id);
-            console.log('Saved file from DB (after save):', savedFile?.versions || 'undefined');
-
-            console.log('Versions array after save:', freshFile.versions);
-
+            
             if (!res.headersSent) {
               res.status(200).json({
                 success: true,
@@ -134,7 +121,6 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
               });
             }
           } catch (dbError: any) {
-            console.error('Version save error:', dbError.message);
             await cloudinary.uploader.destroy(result.public_id).catch(() => {});
             if (!res.headersSent) {
               res.status(500).json({ success: false, message: 'Failed to save new version', error: dbError.message });
@@ -149,7 +135,6 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
       stream.pipe(uploadStream);
     } else {
       // 3. Normal new file upload
-      console.log('Uploading new file (no duplicate or version found)');
 
       const uploadStream = cloudinary.uploader.upload_stream(
         { folder: 'finfom-uploads', resource_type: mimetype.startsWith('image/') ? 'image' : 'raw' },
@@ -234,18 +219,12 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
       await new Promise(resolve => setTimeout(resolve, 500)); // wait 500ms
       file = await File.findById(req.params.id);
       attempts++;
-      console.log(`Waiting for versions... attempt ${attempts}, versions:`, file.versions || 'undefined');
-    }
+      }
 
     // Safety: Ensure versions is an array
     if (!Array.isArray(file.versions)) {
       file.versions = [];
     }
-
-    // Log for debug
-    console.log('File versions (before revert):', file.versions);
-    console.log('Current version:', file.currentVersion);
-    console.log('Looking for version:', file.currentVersion - 1);
 
     // Find previous version
     const previousVersion = file.versions.find(v => v.versionNumber === file.currentVersion - 1);
