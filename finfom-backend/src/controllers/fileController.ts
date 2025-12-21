@@ -22,51 +22,55 @@ const calculateFileHash = (buffer: Buffer): string => {
 export const uploadFile = async (req: AuthRequest, res: Response) => {
   try {
     // Basic validation
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded' });
-    }
-
-    if (!req.user) {
-      return res.status(401).json({ success: false, message: 'User not authenticated' });
-    }
+    if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
+    if (!req.user) return res.status(401).json({ success: false, message: 'User not authenticated' });
 
     const { title, description, groupId, visibility = 'private', password } = req.body;
 
     // Validate required fields
-    if (!groupId) {
-      return res.status(400).json({ success: false, message: 'Group selection is required' });
-    }
+    if (!groupId) return res.status(400).json({ success: false, message: 'Group selection is required' });
+    if (!description || description.trim() === '') return res.status(400).json({ success: false, message: 'File description is required' });
 
-    if (!description || description.trim() === '') {
-      return res.status(400).json({ success: false, message: 'File description is required' });
-    }
-
-    // Verify the group exists
+    // Verify group exists
     const group = await Group.findById(groupId);
-    if (!group) {
-      return res.status(404).json({ success: false, message: 'Selected group does not exist' });
-    }
+    if (!group) return res.status(404).json({ success: false, message: 'Selected group does not exist' });
 
     const { buffer, originalname, mimetype, size } = req.file;
 
-    // Calculate hash for deduplication
     const fileHash = calculateFileHash(buffer);
 
-    // 1. Check for versioning: same title, same user, same group
     const finalTitle = (title?.trim() || originalname).trim();
+
+    // 1. Check for identical content (same hash) — reuse existing file
+    const identicalDuplicate = await File.findOne({
+      fileHash,
+      size,
+      fileType: mimetype,
+    });
+
+    if (identicalDuplicate) {
+      console.log(`[DUPLICATE] Identical content already exists: ${fileHash}`);
+      return res.status(200).json({
+        success: true,
+        data: identicalDuplicate,
+        message: 'File content already exists in the system. Using existing file.',
+        isDuplicate: true,
+        link: identicalDuplicate.secureUrl,
+      });
+    }
+
+    // 2. Check for versioning: same title, same user, same group
+    const existingFileForVersion = await File.findOne({
+      title: { $regex: new RegExp(`^${finalTitle}$`, 'i') }, // case-insensitive exact match
+      uploaderId: req.user._id,
+      groupId,
+    });
 
     console.log('Versioning query params:', {
       title: finalTitle,
       uploaderId: req.user._id.toString(),
       groupId: groupId.toString(),
     });
-
-    const existingFileForVersion = await File.findOne({
-      title: { $regex: new RegExp(`^${finalTitle}$`, 'i') }, // exact match, case-insensitive
-      uploaderId: req.user._id,
-      groupId,
-    });
-
     console.log('Found existing file for version:', existingFileForVersion ? 'YES' : 'NO', existingFileForVersion?._id);
 
     if (existingFileForVersion) {
@@ -85,19 +89,13 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
           }
 
           try {
-            // Reload the document after upload (fresh state)
+            // Reload fresh document
             const freshFile = await File.findById(existingFileForVersion._id);
 
-            if (!freshFile) {
-              throw new Error('File not found after upload');
-            }
+            if (!freshFile) throw new Error('File not found after upload');
 
-            // Safety: Initialize versions array
-            if (!Array.isArray(freshFile.versions)) {
-              freshFile.versions = [];
-            }
+            if (!Array.isArray(freshFile.versions)) freshFile.versions = [];
 
-            // Save old version
             freshFile.versions.push({
               versionNumber: freshFile.currentVersion || 1,
               uploadedAt: new Date(),
@@ -109,7 +107,6 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
               fileType: freshFile.fileType,
             });
 
-            // Update current
             freshFile.currentVersion = newVersionNumber;
             freshFile.cloudinaryId = result.public_id;
             freshFile.url = result.url;
@@ -121,7 +118,6 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
             freshFile.fileHash = fileHash;
             freshFile.updatedAt = new Date();
 
-            // Save the fresh document
             await freshFile.save();
 
             console.log('Versions array after save:', freshFile.versions);
@@ -149,24 +145,6 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
       stream.push(null);
       stream.pipe(uploadStream);
     } else {
-      // 2. Check for identical content (same hash) — reuse existing file (save storage)
-      const identicalDuplicate = await File.findOne({
-        fileHash,
-        size,
-        fileType: mimetype,
-      });
-
-      if (identicalDuplicate) {
-        console.log(`[DUPLICATE] Identical content already exists: ${fileHash}`);
-        return res.status(200).json({
-          success: true,
-          data: identicalDuplicate,
-          message: 'File content already exists in the system. Using existing file.',
-          isDuplicate: true,
-          link: identicalDuplicate.secureUrl,
-        });
-      }
-
       // 3. Normal new file upload
       console.log('Uploading new file (no duplicate or version found)');
 
@@ -231,7 +209,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 export const revertToPreviousVersion = async (req: AuthRequest, res: Response) => {
   try {
     // Load fresh document (no cache)
-    const file = await File.findById(req.params.id).lean(false); // lean(false) = full Mongoose doc
+    const file = await File.findById(req.params.id).lean(false); // full Mongoose doc
     if (!file) {
       return res.status(404).json({ success: false, message: 'File not found' });
     }
