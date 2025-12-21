@@ -209,7 +209,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 export const revertToPreviousVersion = async (req: AuthRequest, res: Response) => {
   try {
     // Load fresh document (no cache)
-    const file = await File.findById(req.params.id).lean(false); // full Mongoose doc
+    const file = await File.findById(req.params.id);
     if (!file) {
       return res.status(404).json({ success: false, message: 'File not found' });
     }
@@ -264,7 +264,7 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
     file.fileHash = previousVersion.fileHash || file.fileHash;
     file.updatedAt = new Date();
 
-    // Mark modified
+    // Mark the array as modified
     file.markModified('versions');
 
     await file.save();
