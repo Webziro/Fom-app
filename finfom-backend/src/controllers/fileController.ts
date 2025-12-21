@@ -208,7 +208,8 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 // Revert to previous version function
 export const revertToPreviousVersion = async (req: AuthRequest, res: Response) => {
   try {
-    const file = await File.findById(req.params.id);
+    // Load fresh document (no cache, full Mongoose doc)
+    const file = await File.findById(req.params.id).lean(false);
     if (!file) {
       return res.status(404).json({ success: false, message: 'File not found' });
     }
@@ -221,16 +222,18 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
       return res.status(400).json({ success: false, message: 'No previous version to revert to' });
     }
 
-    // Safety: Ensure versions is an array (this fixes the undefined error)
-    const versions = Array.isArray(file.versions) ? file.versions : [];
+    // Safety: Ensure versions is an array
+    if (!Array.isArray(file.versions)) {
+      file.versions = [];
+    }
 
     // Log for debug
-    console.log('File versions (before revert):', versions);
+    console.log('File versions (before revert):', file.versions);
     console.log('Current version:', file.currentVersion);
     console.log('Looking for version:', file.currentVersion - 1);
 
     // Find previous version
-    const previousVersion = versions.find(v => v.versionNumber === file.currentVersion - 1);
+    const previousVersion = file.versions.find(v => v.versionNumber === file.currentVersion - 1);
 
     if (!previousVersion) {
       console.error('Previous version not found in array');
@@ -240,7 +243,7 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
     // Save current as new backup version
     const newVersionNumber = file.currentVersion + 1;
 
-    versions.push({
+    file.versions.push({
       versionNumber: file.currentVersion,
       uploadedAt: new Date(),
       uploadedBy: req.user._id,
@@ -261,13 +264,11 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
     file.fileHash = previousVersion.fileHash || file.fileHash;
     file.updatedAt = new Date();
 
-    // Update versions in the document
-    file.versions = versions;
-
     // Mark modified
     file.markModified('versions');
 
-    await file.save();
+    // Save with validators
+    await file.save({ runValidators: true });
 
     res.json({
       success: true,
