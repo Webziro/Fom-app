@@ -120,6 +120,9 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 
             await freshFile.save();
 
+            const savedFile = await File.findById(freshFile._id);
+            console.log('Saved file from DB (after save):', savedFile?.versions || 'undefined');
+
             console.log('Versions array after save:', freshFile.versions);
 
             if (!res.headersSent) {
@@ -208,8 +211,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 // Revert to previous version function
 export const revertToPreviousVersion = async (req: AuthRequest, res: Response) => {
   try {
-    // Load fresh document (no cache, full Mongoose doc)
-    const file = await File.findById(req.params.id).lean(false);
+    let file = await File.findById(req.params.id);
     if (!file) {
       return res.status(404).json({ success: false, message: 'File not found' });
     }
@@ -220,6 +222,19 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
 
     if (file.currentVersion <= 1) {
       return res.status(400).json({ success: false, message: 'No previous version to revert to' });
+    }
+
+    // Poll for versions array to be non-empty (wait for upload commit)
+    let attempts = 0;
+    while (!Array.isArray(file.versions) || file.versions.length === 0) {
+      if (attempts >= 10) {
+        console.error('Timeout waiting for versions array');
+        return res.status(500).json({ success: false, message: 'Timeout waiting for versions history' });
+      }
+      await new Promise(resolve => setTimeout(resolve, 500)); // wait 500ms
+      file = await File.findById(req.params.id);
+      attempts++;
+      console.log(`Waiting for versions... attempt ${attempts}, versions:`, file.versions || 'undefined');
     }
 
     // Safety: Ensure versions is an array
@@ -267,8 +282,7 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
     // Mark modified
     file.markModified('versions');
 
-    // Save with validators
-    await file.save({ runValidators: true });
+    await file.save();
 
     res.json({
       success: true,
