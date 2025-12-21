@@ -232,8 +232,17 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
     console.log('Current version:', file.currentVersion);
     console.log('Looking for version:', file.currentVersion - 1);
 
+    // Small delay to ensure DB commit from upload
+    await new Promise(resolve => setTimeout(resolve, 500)); // 500ms
+
+    // Reload fresh document (force latest state)
+    const freshFile = await File.findById(req.params.id);
+    if (!freshFile) {
+      return res.status(404).json({ success: false, message: 'File not found on reload' });
+    }
+
     // Find previous version
-    const previousVersion = file.versions.find(v => v.versionNumber === file.currentVersion - 1);
+    const previousVersion = freshFile.versions.find(v => v.versionNumber === freshFile.currentVersion - 1);
 
     if (!previousVersion) {
       console.error('Previous version not found in array');
@@ -241,37 +250,37 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
     }
 
     // Save current as new backup version
-    const newVersionNumber = file.currentVersion + 1;
+    const newVersionNumber = freshFile.currentVersion + 1;
 
-    file.versions.push({
-      versionNumber: file.currentVersion,
+    freshFile.versions.push({
+      versionNumber: freshFile.currentVersion,
       uploadedAt: new Date(),
       uploadedBy: req.user._id,
-      cloudinaryId: file.cloudinaryId,
-      url: file.url,
-      secureUrl: file.secureUrl,
-      size: file.size,
-      fileType: file.fileType,
+      cloudinaryId: freshFile.cloudinaryId,
+      url: freshFile.url,
+      secureUrl: freshFile.secureUrl,
+      size: freshFile.size,
+      fileType: freshFile.fileType,
     });
 
     // Restore previous to current
-    file.currentVersion = newVersionNumber;
-    file.cloudinaryId = previousVersion.cloudinaryId;
-    file.url = previousVersion.url;
-    file.secureUrl = previousVersion.secureUrl;
-    file.size = previousVersion.size;
-    file.fileType = previousVersion.fileType;
-    file.fileHash = previousVersion.fileHash || file.fileHash;
-    file.updatedAt = new Date();
+    freshFile.currentVersion = newVersionNumber;
+    freshFile.cloudinaryId = previousVersion.cloudinaryId;
+    freshFile.url = previousVersion.url;
+    freshFile.secureUrl = previousVersion.secureUrl;
+    freshFile.size = previousVersion.size;
+    freshFile.fileType = previousVersion.fileType;
+    freshFile.fileHash = previousVersion.fileHash || freshFile.fileHash;
+    freshFile.updatedAt = new Date();
 
-    // Mark the array as modified
-    file.markModified('versions');
+    // Mark modified
+    freshFile.markModified('versions');
 
-    await file.save();
+    await freshFile.save();
 
     res.json({
       success: true,
-      data: file,
+      data: freshFile,
       message: `Reverted to previous version (${previousVersion.versionNumber}). New backup version created (v${newVersionNumber})`,
     });
   } catch (error: any) {
