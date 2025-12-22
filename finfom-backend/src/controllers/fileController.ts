@@ -111,6 +111,10 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 
             await freshFile.save();
 
+            // Invalidate cache for user's files
+            await redisClient.del(`myFiles:${req.user._id}:*`);
+
+            // Return updated file document
             const savedFile = await File.findById(freshFile._id);
             
             if (!res.headersSent) {
@@ -130,6 +134,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
         }
       );
 
+      
       const stream = new Readable();
       stream.push(buffer);
       stream.push(null);
