@@ -121,16 +121,27 @@ export const deleteGroup = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// Get files belonging to a specific group
 export const getGroupFiles = async (req: AuthRequest, res: Response) => {
   try {
     const group = await Group.findById(req.params.id);
-    if (!group) {
-      return res.status(404).json({ success: false, message: 'Group not found' });
+    if (!group) return res.status(404).json({ success: false, message: 'Group not found' });
+
+    // Optional: Check if user is member or owner
+    if (group.ownerId.toString() !== req.user!._id.toString() && !group.members.includes(req.user!._id)) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
-    const files = await File.find({ groupId: req.params.id }).sort({ createdAt: -1 });
-    res.json({ success: true, data: files });
+    const files = await File.find({ groupId: group._id })
+      .populate('uploaderId', 'username _id')
+      .populate('groupId', 'title')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: files,
+    });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };

@@ -37,5 +37,6 @@ router.get('/:id', getGroup);
 router.get('/:id/files', getGroupFiles);
 router.put('/:id', updateGroup, clearGroupCache);
 router.delete('/:id', deleteGroup, clearGroupCache);
+router.get('/:id/files', protect, getGroupFiles);
 
 export default router;

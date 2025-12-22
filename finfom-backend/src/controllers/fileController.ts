@@ -349,7 +349,6 @@ export const getMyFiles = async (req: AuthRequest, res: Response) => {
     try {
       await redisClient.setEx(cacheKey, 300, JSON.stringify(response));
     } catch (redisErr) {
-      console.error('Redis set error:', redisErr);
     }
 
     res.json(response);
