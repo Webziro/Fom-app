@@ -98,6 +98,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
               fileType: freshFile.fileType,
             });
 
+            // Update to new version
             freshFile.currentVersion = newVersionNumber;
             freshFile.cloudinaryId = result.public_id;
             freshFile.url = result.url;
