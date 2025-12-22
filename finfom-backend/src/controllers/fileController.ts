@@ -185,6 +185,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
         }
       );
 
+      // Pipe the buffer to Cloudinary upload stream
       const stream = new Readable();
       stream.push(buffer);
       stream.push(null);
