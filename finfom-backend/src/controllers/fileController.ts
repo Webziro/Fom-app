@@ -86,7 +86,8 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
             if (!freshFile) throw new Error('File not found after upload');
 
             if (!Array.isArray(freshFile.versions)) freshFile.versions = [];
-
+            
+            // Save current as old version
             freshFile.versions.push({
               versionNumber: freshFile.currentVersion || 1,
               uploadedAt: new Date(),
