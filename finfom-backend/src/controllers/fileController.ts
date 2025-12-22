@@ -140,8 +140,8 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
       stream.push(null);
       stream.pipe(uploadStream);
     } else {
-      // 3. Normal new file upload
 
+      // 3. Normal new file upload
       const uploadStream = cloudinary.uploader.upload_stream(
         { folder: 'finfom-uploads', resource_type: mimetype.startsWith('image/') ? 'image' : 'raw' },
         async (error, result) => {
