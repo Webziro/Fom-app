@@ -69,6 +69,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
     if (existingFileForVersion) {
       const newVersionNumber = (existingFileForVersion.currentVersion || 1) + 1;
 
+      // Upload new version to Cloudinary
       const uploadStream = cloudinary.uploader.upload_stream(
         { folder: 'finfom-uploads', resource_type: mimetype.startsWith('image/') ? 'image' : 'raw' },
         async (error, result) => {
