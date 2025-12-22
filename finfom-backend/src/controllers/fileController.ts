@@ -287,8 +287,6 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
 };
 
 // Get user's files with pagination and search function
-import redisClient from '../utils/redis';
-
 export const getMyFiles = async (req: AuthRequest, res: Response) => {
   try {
     const { page = 1, limit = 10, search, folderId } = req.query;
