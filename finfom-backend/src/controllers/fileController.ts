@@ -152,6 +152,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
             }
           }
 
+          // Save new file document
           try {
             const newFile = await File.create({
               title: finalTitle,
