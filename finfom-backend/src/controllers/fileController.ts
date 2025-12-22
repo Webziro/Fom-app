@@ -9,7 +9,7 @@ import * as crypto from 'crypto';
 import axios from 'axios';
 import User from '../models/User';  
 import sendEmail from '../utils/sendEmail';
-import { createFolder } from '../controllers/fileController'; // or folderController
+import { createFolder } from '../controllers/fileController';
 import Folder from '../models/Folder';
 import redisClient from '../utils/redis';
 
