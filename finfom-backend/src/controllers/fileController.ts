@@ -11,6 +11,7 @@ import User from '../models/User';  
 import sendEmail from '../utils/sendEmail';
 import { createFolder } from '../controllers/fileController'; // or folderController
 import Folder from '../models/Folder';
+import redisClient from '../utils/redis';
 
 //This function calculates MD5 hash of file buffer and returns it as a hex string
 const calculateFileHash = (buffer: Buffer): string => {
@@ -275,45 +276,63 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
 };
 
 // Get user's files with pagination and search function
+import redisClient from '../utils/redis';
+
 export const getMyFiles = async (req: AuthRequest, res: Response) => {
   try {
     const { page = 1, limit = 10, search, folderId } = req.query;
+    const userId = req.user!._id.toString();
+
+    // Cache key: unique per user, page, limit, search, folderId
+    const cacheKey = `myFiles:${userId}:${page}:${limit}:${search || 'none'}:${folderId || 'root'}`;
+
+    // Check cache
+    const cached = await redisClient.get(cacheKey);
+    if (cached) {
+      return res.json(JSON.parse(cached));
+    }
+
     const query: any = {
-    uploaderId: req.user!._id,  // Only user's files
-   };
+      uploaderId: req.user!._id,
+    };
 
-    if (folderId) {
-      query.folderId = folderId;  // Filter by specific folder
-    } else {
-      query.folderId = null;  // Root: no folder
-    }
+    if (folderId) {
+      query.folderId = folderId;
+    } else {
+      query.folderId = null;
+    }
 
-    if (search) {
-      query.$text = { $search: search as string };
-    }
+    if (search) {
+      query.$text = { $search: search as string };
+    }
 
-    const files = await File.find(query)
-      .populate('groupId', 'title')
-      .populate('uploaderId', 'username _id')
-      .sort({ createdAt: -1 })
-      .limit(Number(limit))
-      .skip((Number(page) - 1) * Number(limit));
+    const files = await File.find(query)
+      .populate('groupId', 'title')
+      .populate('uploaderId', 'username _id')
+      .sort({ createdAt: -1 })
+      .limit(Number(limit))
+      .skip((Number(page) - 1) * Number(limit));
 
-    const total = await File.countDocuments(query);
+    const total = await File.countDocuments(query);
 
-    res.json({
-      success: true,
-      data: files,
-      pagination: {
-        page: Number(page),
-        limit: Number(limit),
-        total,
-        pages: Math.ceil(total / Number(limit)),
-      },
-    });
-  } catch (error: any) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
+    const response = {
+      success: true,
+      data: files,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        pages: Math.ceil(total / Number(limit)),
+      },
+    };
+
+    // Cache for 5 minutes (300 seconds)
+    await redisClient.setEx(cacheKey, 300, JSON.stringify(response));
+
+    res.json(response);
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
 };
 
 // Get single file with access control
