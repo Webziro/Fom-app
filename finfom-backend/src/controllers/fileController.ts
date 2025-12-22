@@ -303,11 +303,10 @@ export const getMyFiles = async (req: AuthRequest, res: Response) => {
     try {
       cached = await redisClient.get(cacheKey);
     } catch (redisErr) {
-      console.error('Redis get error:', redisErr);
+      
     }
 
     if (cached) {
-      console.log('REDIS CACHE HIT:', cacheKey);
       return res.json(JSON.parse(cached));
     }
 
