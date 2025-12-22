@@ -18,7 +18,6 @@ const calculateFileHash = (buffer: Buffer): string => {
   return crypto.createHash('md5').update(buffer).digest('hex');
 };
 
-
 // Upload file controller with versioning and duplicate detection
 export const uploadFile = async (req: AuthRequest, res: Response) => {
   try {
@@ -287,20 +286,32 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
 };
 
 // Get user's files with pagination and search function
+
 export const getMyFiles = async (req: AuthRequest, res: Response) => {
   try {
     const { page = 1, limit = 10, search, folderId } = req.query;
-    const userId = req.user!._id.toString();
+    const userId = req.user?._id?.toString();
 
-    // Cache key: unique per user, page, limit, search, folderId
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'User not authenticated' });
+    }
+
     const cacheKey = `myFiles:${userId}:${page}:${limit}:${search || 'none'}:${folderId || 'root'}`;
 
-    // Check cache
-    const cached = await redisClient.get(cacheKey);
+    // Check Redis cache
+    let cached = null;
+    try {
+      cached = await redisClient.get(cacheKey);
+    } catch (redisErr) {
+      console.error('Redis get error:', redisErr);
+    }
+
     if (cached) {
+      console.log('REDIS CACHE HIT:', cacheKey);
       return res.json(JSON.parse(cached));
     }
 
+    // Cache miss — query DB
     const query: any = {
       uploaderId: req.user!._id,
     };
@@ -335,12 +346,17 @@ export const getMyFiles = async (req: AuthRequest, res: Response) => {
       },
     };
 
-    // Cache for 5 minutes (300 seconds)
-    await redisClient.setEx(cacheKey, 300, JSON.stringify(response));
+    // Cache for 5 minutes
+    try {
+      await redisClient.setEx(cacheKey, 300, JSON.stringify(response));
+    } catch (redisErr) {
+      console.error('Redis set error:', redisErr);
+    }
 
     res.json(response);
   } catch (error: any) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('getMyFiles error:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };
 

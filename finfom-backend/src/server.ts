@@ -38,6 +38,15 @@ const connectRedis = async () => {
 
 connectRedis(); // Call this early
 
+// Keep Redis connection alive with periodic pings
+setInterval(async () => {
+  try {
+    await redisClient.ping();
+  } catch (err) {
+    console.error('Redis ping failed:', err);
+  }
+}, 30000);
+
 // --- DYNAMIC CORS CONFIGURATION ---
 const isProduction = process.env.NODE_ENV === 'production';
 const allowedOrigins = isProduction
@@ -92,6 +101,18 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
   });
+});
+
+//Redis test route vist http://localhost:5000/redis-test
+app.get('/redis-test', async (req, res) => {
+  try {
+    await redisClient.set('test-key', 'Hello from Redis!');
+    const value = await redisClient.get('test-key');
+    res.json({ message: 'Redis is working!', value });
+  } catch (error) {
+    logger.error('Redis test error:', error);
+    res.status(500).json({ message: 'Redis test failed', error: error.message });
+  }
 });
 
 // 404 handler
