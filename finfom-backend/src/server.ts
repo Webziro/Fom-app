@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import connectDB from './config/database';
+import { createClient } from 'redis';
 import authRoutes from './routes/auth';
 import fileRoutes from './routes/files';
 import groupRoutes from './routes/groups';
@@ -16,25 +17,39 @@ import logger from './middleware/logger';
 // Initialize the Express app
 const app = express();
 
-// Connect to database
+// Connect to MongoDB
 connectDB();
 
-// --- DYNAMIC CORS CONFIGURATION (Fixes localhost issue) ---
-const isProduction = process.env.NODE_ENV === 'production';
+// --- REDIS CONNECTION ---
+const redisClient = createClient({
+  url: 'redis://localhost:6379', // your Docker Redis URL
+});
 
-// 1. Define the allowed origins dynamically.
+redisClient.on('error', (err) => logger.error('Redis Client Error', err));
+
+const connectRedis = async () => {
+  try {
+    await redisClient.connect();
+    logger.info('Redis connected successfully');
+  } catch (error) {
+    logger.error('Failed to connect to Redis:', error);
+  }
+};
+
+connectRedis(); // Call this early
+
+// --- DYNAMIC CORS CONFIGURATION ---
+const isProduction = process.env.NODE_ENV === 'production';
 const allowedOrigins = isProduction
   ? ["https://finfom.netlify.app"]
   : ["http://localhost:5173"];
 
-// 2. Configure CORS middleware using the dynamic origins array.
-// IMPORTANT: Must be before helmet to avoid blocking
 app.use(cors({
   origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  exposedHeaders: ['Content-Disposition'], // Needed for file downloads
+  exposedHeaders: ['Content-Disposition'],
 }));
 
 // Security middleware
@@ -45,7 +60,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(compression());
 
-// Security: Sanitize data, prevent XSS and HPP
+// Security middleware
 app.use(sanitizeData);
 app.use(preventXSS);
 app.use(preventHPP);
@@ -66,7 +81,7 @@ app.get('/', (req, res) => {
   res.json({
     message: 'Welcome to Finfom API',
     status: 'running',
-    documentation: '/api-docs' 
+    documentation: '/api-docs'
   });
 });
 
@@ -79,9 +94,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// --- FINAL HANDLERS ---
-
-// 404 handler (Must be placed after all defined routes)
+// 404 handler
 app.use('*', (req, res) => {
   res.status(404).json({
     message: 'Route not found',
@@ -89,7 +102,7 @@ app.use('*', (req, res) => {
   });
 });
 
-// Centralized Error handling (Must be the very last middleware to catch errors)
+// Error handler (last)
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
@@ -105,6 +118,8 @@ process.on('SIGTERM', () => {
   logger.info('SIGTERM signal received: closing HTTP server');
   server.close(() => {
     logger.info('HTTP server closed');
+    redisClient.quit().catch(() => logger.error('Failed to close Redis'));
+    process.exit(0);
   });
 });
 
