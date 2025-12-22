@@ -49,6 +49,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
       fileType: mimetype,
     });
 
+    // If identical file found, return its info without re-uploading
     if (identicalDuplicate) {
       return res.status(200).json({
         success: true,
