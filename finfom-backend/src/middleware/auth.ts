@@ -7,6 +7,7 @@ interface JwtPayload {
   id: string;
 }
 
+// Middleware to protect routes
 export const protect = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     let token;
