@@ -9,6 +9,7 @@ export const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+//function that limits login attempts to prevent brute-force attacks.
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
