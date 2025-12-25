@@ -33,6 +33,7 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
   }
 };
 
+// Middleware to check for admin role
 export const admin = (req: AuthRequest, res: Response, next: NextFunction) => {
   if (req.user && req.user.role === 'admin') {
     next();
