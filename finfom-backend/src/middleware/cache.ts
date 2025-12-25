@@ -17,6 +17,7 @@ redis.on('connect', () => {
 redis.on('error', (err) => {
 });
 
+//function that returns middleware to cache GET requests for a specified duration (in seconds).
 export const cache = (duration: number = 300) => {
   return async (req: any, res: any, next: any) => {
     if (req.method !== 'GET') {
