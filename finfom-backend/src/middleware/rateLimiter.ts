@@ -17,6 +17,7 @@ export const authLimiter = rateLimit({
   skipSuccessfulRequests: true,
 });
 
+//function that limits file uploads to prevent abuse.
 export const uploadLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 20,
