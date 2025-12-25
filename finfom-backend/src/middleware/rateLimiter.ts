@@ -24,6 +24,7 @@ export const uploadLimiter = rateLimit({
   message: 'Upload limit exceeded, please try again later.',
 });
 
+//function that limits file downloads to manage bandwidth.
 export const downloadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 50,
