@@ -46,7 +46,6 @@ export const filesAPI = {
   restoreFileVersion: (id, data) => axios.post(`api/files/${id}/restore-version`, data),
   revertToPreviousVersion: (id) => axios.post(`/api/files/${id}/revert-previous`),
   // getAnalytics: () => axios.get('api/files/analytics')
-  getGroupFiles: (groupId) => axios.get(`/api/groups/${groupId}/files`),
   
   getAnalytics: () => {
   const token = localStorage.getItem('token');

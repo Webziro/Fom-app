@@ -8,8 +8,6 @@ export interface AuthRequest extends Request {
   body: {
     title?: string;
     description?: string;
-    groupId?: string;
-    groupName?: string;
     visibility?: 'public' | 'private' | 'password';
     password?: string;
     username?: string;

@@ -7,7 +7,6 @@ import connectDB from './config/database';
 import { createClient } from 'redis';
 import authRoutes from './routes/auth';
 import fileRoutes from './routes/files';
-import groupRoutes from './routes/groups';
 import errorHandler from './middleware/errorHandler';
 import { httpLogger } from './middleware/logger';
 import { apiLimiter } from './middleware/rateLimiter';
@@ -83,7 +82,6 @@ app.use('/api', apiLimiter);
 // --- ROUTES ---
 app.use('/api/auth', authRoutes);
 app.use('/api/files', fileRoutes);
-app.use('/api/groups', groupRoutes);
 
 // Root handler
 app.get('/', (req, res) => {

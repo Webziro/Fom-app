@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Upload, X } from 'lucide-react';
 import { filesAPI } from '../../api/files';
-import { groupsAPI } from '../../api/groups';
 import toast from 'react-hot-toast';
 import Button from '../common/Button';
 import Input from '../common/Input';
@@ -9,11 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 const FileUpload = ({ onSuccess, onClose }) => {
   const [file, setFile] = useState(null);
-  const [groups, setGroups] = useState([]);
-  const [selectedGroupId, setSelectedGroupId] = useState('');
-  const [newGroupName, setNewGroupName] = useState('');
-  const [isCreatingNewGroup, setIsCreatingNewGroup] = useState(false);
-  const queryClient = useQueryClient(); 
+const queryClient = useQueryClient(); 
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -22,21 +17,6 @@ const FileUpload = ({ onSuccess, onClose }) => {
   });
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-
-  // Load existing groups when component mounts
-
-  useEffect(() => {
-  const loadGroups = async () => {
-    try {
-      const response = await groupsAPI.getAllGroups();
-      setGroups(response.data.data || []);
-    } catch (error) {
-      console.error('Error loading groups:', error);
-      toast.error('Failed to load groups');
-    }
-  };
-  loadGroups();
-}, []);
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -70,32 +50,8 @@ const FileUpload = ({ onSuccess, onClose }) => {
     }
   };
 
-  const handleCreateGroup = async () => {
-    if (!newGroupName.trim()) return;
 
-    try {
-      const response = await groupsAPI.createOrGetGroup({ groupName: newGroupName.trim() });
-      if (response.success) {
-        const group = response.data;
-        setGroups(prev => [...prev, group]);
-        setSelectedGroupId(group._id);
-        setNewGroupName('');
-        setIsCreatingNewGroup(false);
-        toast.success('Group created successfully');
-      }
-    } catch (error) {
-      if (error.response?.data?.exists) {
-        const group = error.response.data.data;
-        setSelectedGroupId(group._id);
-        setNewGroupName('');
-        setIsCreatingNewGroup(false);
-        toast.success('Group already exists and has been selected');
-      } else {
-        toast.error(error.response?.data?.message || 'Failed to create group');
-      }
-    }
-  };
-
+  // Handle form submission after validations
 const handleSubmit = async (e) => {
   e.preventDefault();
 
@@ -103,9 +59,6 @@ const handleSubmit = async (e) => {
     return toast.error('Please select a file');
   }
 
-  if (!selectedGroupId) {
-    return toast.error('Please select or create a group');
-  }
 
   if (!formData.description.trim()) {
     return toast.error('Description is required');
@@ -117,7 +70,6 @@ const handleSubmit = async (e) => {
   uploadData.append('file', file);
   uploadData.append('title', formData.title);
   uploadData.append('description', formData.description);
-  uploadData.append('groupId', selectedGroupId);
   uploadData.append('visibility', formData.visibility);
 
   if (formData.visibility === 'password' && formData.password.trim()) {
@@ -128,7 +80,6 @@ const handleSubmit = async (e) => {
   const response = await filesAPI.uploadFile(uploadData);
 
   // Accept both 200 (version) and 201 (new file) as success
-
   if (response.status === 200 || response.status === 201) {
     if (response.data.isNewVersion) {
       toast.success(
@@ -200,53 +151,6 @@ const handleSubmit = async (e) => {
                     accept=".pdf,.doc,.docx,.txt,.jpg,.png"
                   />
                 </label>
-              </div>
-            )}
-          </div>
-
-          {/* Group Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Group <span className="text-red-500">*</span>
-            </label>
-            <div className="flex gap-3 items-end">
-              <select
-                value={selectedGroupId}
-                onChange={(e) => {
-                  setSelectedGroupId(e.target.value);
-                  setIsCreatingNewGroup(false);
-                  setNewGroupName('');
-                }}
-                className="input-field flex-1"
-                required
-              >
-                <option value="">Select a group</option>
-                {groups.map((group) => (
-                  <option key={group._id} value={group._id}>
-                    {group.title}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={() => setIsCreatingNewGroup(!isCreatingNewGroup)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap"
-              >
-                {isCreatingNewGroup ? 'Cancel' : '+ New Group'}
-              </button>
-            </div>
-
-            {isCreatingNewGroup && (
-              <div className="mt-3 flex gap-3">
-                <Input
-                  value={newGroupName}
-                  onChange={(e) => setNewGroupName(e.target.value)}
-                  placeholder="Enter name for new group"
-                  className="flex-1"
-                />
-                <Button type="button" onClick={handleCreateGroup} disabled={!newGroupName.trim()}>
-                  Create Group
-                </Button>
               </div>
             )}
           </div>

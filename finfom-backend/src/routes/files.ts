@@ -53,6 +53,7 @@ router.post(
 );
 
 router.get('/', protect, getMyFiles);
+router.get('/accessible', protect, getAllAccessibleFiles);
 
 router.put(
   '/:id',
@@ -69,10 +70,6 @@ router.delete(
 );
 
 // Folder routes
-router.post('/folders', protect, createFolder);
-router.get('/folders', protect, getMyFolders);
-router.put('/folders/:id', protect, updateFolder);
-router.delete('/folders/:id', protect, deleteFolder);
 router.post('/folders', protect, createFolder);
 router.get('/folders', protect, getMyFolders);
 router.put('/folders/:id', protect, updateFolder);

@@ -1,7 +1,6 @@
 import { useContext, useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { filesAPI } from '../api/files';
-import { groupsAPI } from '../api/groups';
 import Layout from '../components/layout/Layout';
 import FilePreviewModal from '../components/files/FilePreviewModal';
 import { AuthContext } from '../context/AuthContext';
@@ -33,10 +32,6 @@ const DashboardPage = () => {
     queryFn: () => filesAPI.getMyFiles({ limit: 5 }),
   });
 
-  const { data: groupsData } = useQuery({
-    queryKey: ['myGroups'],
-    queryFn: () => groupsAPI.getMyGroups(),
-  });
 
   const deleteMutation = useMutation({
     mutationFn: filesAPI.deleteFile,
@@ -51,7 +46,6 @@ const DashboardPage = () => {
   });
 
   const files = filesData?.data?.data || [];
-  const groups = groupsData?.data?.data || [];
 
   const handleDownload = async (fileId) => {
     try {
@@ -105,12 +99,6 @@ const DashboardPage = () => {
       value: filesData?.data?.pagination?.total || 0,
       icon: FileText,
       color: 'bg-blue-100 text-blue-600',
-    },
-    {
-      label: 'Total Groups',
-      value: groups.length,
-      icon: FolderOpen,
-      color: 'bg-green-100 text-green-600',
     },
     {
       label: 'Total Downloads',
@@ -228,32 +216,6 @@ const DashboardPage = () => {
           </div>
         </div>
 
-        {/* Recent Groups */}
-        <div className="card">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Your Groups</h2>
-            <Link to="/groups" className="hover:bg-[#1d4ed8] hover:text-primary-700 text-sm">
-              View All →
-            </Link>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {groups.length === 0 ? (
-              <p className="text-gray-500 col-span-3 text-center py-4">
-                No groups yet. Create your first group!
-              </p>
-            ) : (
-              groups.slice(0, 3).map((group) => (
-                <div key={group._id} className="p-4 border border-gray-200 rounded-lg hover:border-primary-300 transition-colors">
-                  <div className="flex items-center gap-2 mb-2">
-                    <FolderOpen className="w-5 h-5 hover:bg-[#1d4ed8]" />
-                    <h3 className="font-medium">{group.title}</h3>
-                  </div>
-                  <p className="text-sm text-gray-600">{group.fileCount || 0} files</p>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
       </div>
 
       {/* File Preview Modal */}

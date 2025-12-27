@@ -31,12 +31,6 @@ export const downloadLimiter = rateLimit({
   message: 'Download limit exceeded, please try again later.',
 });
 
-//function that limits group creation to prevent spam.
-export const groupCreationLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 10,
-  message: 'Group creation limit exceeded, please try again later.',
-});
 
 //function that limits file access to ensure fair usage.
 export const fileAccessLimiter = rateLimit({

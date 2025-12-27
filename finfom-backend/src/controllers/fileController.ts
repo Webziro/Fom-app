@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 import { Response } from 'express';
 import File from '../models/File';
-import Group from '../models/Group';
 import cloudinary from '../config/cloudinary';
 import { AuthRequest } from '../types';
 import { Readable } from 'stream';
@@ -25,15 +24,10 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
     if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
     if (!req.user) return res.status(401).json({ success: false, message: 'User not authenticated' });
 
-    const { title, description, groupId, visibility = 'private', password } = req.body;
+    const { title, description, visibility = 'private', password } = req.body;
 
     // Validate required fields
-    if (!groupId) return res.status(400).json({ success: false, message: 'Group selection is required' });
-    if (!description || description.trim() === '') return res.status(400).json({ success: false, message: 'File description is required' });
-
-    // Verify group exists
-    const group = await Group.findById(groupId);
-    if (!group) return res.status(404).json({ success: false, message: 'Selected group does not exist' });
+     if (!description || description.trim() === '') return res.status(400).json({ success: false, message: 'File description is required' });
 
     const { buffer, originalname, mimetype, size } = req.file;
 
@@ -63,7 +57,6 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
     const existingFileForVersion = await File.findOne({
       title: { $regex: new RegExp(`^${finalTitle}$`, 'i') }, // case-insensitive exact match
       uploaderId: req.user._id,
-      groupId,
     });
 
     if (existingFileForVersion) {
@@ -118,9 +111,6 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
         freshFile.fileHash = fileHash;
         freshFile.updatedAt = new Date();
 
-        // ←←← ADD THIS LINE HERE ←←←
-        freshFile.groupId = groupId;  // This makes the file appear in the group
-
         // Save the fresh document
         await freshFile.save();
 
@@ -166,7 +156,6 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
             const newFile = await File.create({
               title: finalTitle,
               description: description.trim(),
-              groupId: group._id,
               visibility,
               password: visibility === 'password' ? password : null,
               size,
@@ -293,84 +282,41 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
 
 // Get user's files with pagination and search function
 
-export const getMyFiles = async (req: AuthRequest, res: Response) => {
+export const moveFileToFolder = async (req: AuthRequest, res: Response) => {
   try {
-    const { page = 1, limit = 10, search, folderId } = req.query;
-    const userId = req.user?._id?.toString();
+    const { folderId } = req.body; // new folder ID (or null for root)
+    const file = await File.findById(req.params.id);
 
-    if (!userId) {
-      return res.status(401).json({ success: false, message: 'User not authenticated' });
+    if (!file) {
+      return res.status(404).json({ success: false, message: 'File not found' });
     }
 
-    const cacheKey = `myFiles:${userId}:${page}:${limit}:${search || 'none'}:${folderId || 'root'}`;
-
-    // Check Redis cache
-    let cached = null;
-    try {
-      cached = await redisClient.get(cacheKey);
-    } catch (redisErr) {
-      
+    if (file.uploaderId.toString() !== req.user!._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
-    if (cached) {
-      return res.json(JSON.parse(cached));
-    }
+    // Update folderId (null = root)
+    file.folderId = folderId || null;
 
-    // Cache miss — query DB
-    const query: any = {
-      uploaderId: req.user!._id,
-    };
+    await file.save();
 
-    if (folderId) {
-      query.folderId = folderId;
-    } else {
-      query.folderId = null;
-    }
+    // Invalidate Redis cache for this user
+    await redisClient.del(`myFiles:${req.user._id}:*`);
 
-    if (search) {
-      query.$text = { $search: search as string };
-    }
-
-    const files = await File.find(query)
-      .populate('groupId', 'title')
-      .populate('uploaderId', 'username _id')
-      .sort({ createdAt: -1 })
-      .limit(Number(limit))
-      .skip((Number(page) - 1) * Number(limit));
-
-    const total = await File.countDocuments(query);
-
-    const response = {
-      success: true,
-      data: files,
-      pagination: {
-        page: Number(page),
-        limit: Number(limit),
-        total,
-        pages: Math.ceil(total / Number(limit)),
-      },
-    };
-
-    // Cache for 5 minutes
-    try {
-      await redisClient.setEx(cacheKey, 300, JSON.stringify(response));
-    } catch (redisErr) {
-    }
-
-    res.json(response);
+    res.json({ success: true, data: file, message: 'File moved successfully' });
   } catch (error: any) {
-    console.error('getMyFiles error:', error);
+    console.error('Move file error:', error);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
-};
+}; 
 
 // Get single file with access control
 export const getFile = async (req: AuthRequest, res: Response) => {
   try {
     const file = await File.findById(req.params.id)
       .populate('uploaderId', 'username email')
-      .populate('groupId', 'title')
-      .select('+password');  // ← This loads the hidden password hash
+      .populate ('title')
+      .select('+password');  // <- This loads the hidden password hash
 
     if (!file) {
       return res.status(404).json({ message: 'File not found' });
@@ -554,17 +500,11 @@ export const updateFile = async (req: AuthRequest, res: Response) => {
       file.folderId = req.body.folderId || null;
     }
 
-    const { title, description, groupId, visibility, password } = req.body;
+    const { title, description, visibility, password } = req.body;
 
     if (title) file.title = title.trim();
     if (description !== undefined) file.description = description.trim();
-    if (groupId !== undefined) {
-      const group = await Group.findById(groupId);
-      if (!group) {
-        return res.status(400).json({ message: 'Invalid group' });
-      }
-      file.groupId = groupId as any;
-    }
+
     if (visibility) file.visibility = visibility;
     if (visibility === 'password' && password) {
       file.password = password;
@@ -576,7 +516,7 @@ export const updateFile = async (req: AuthRequest, res: Response) => {
     }
 
     await file.save();
-    const updatedFile = await File.findById(file._id).populate('groupId', 'title');
+    const updatedFile = await File.findById(file._id).populate( 'title');
     res.json({ success: true, data: updatedFile });
     } catch (error: any) {
       res.status(500).json({ message: 'Server error', error: error.message });
@@ -724,7 +664,7 @@ export const getPublicFiles = async (req: AuthRequest, res: Response) => {
 
     const files = await File.find(query)
       .populate('uploaderId', 'username')
-      .populate('groupId', 'title')
+      .populate( 'title')
       .sort({ createdAt: -1 })
       .limit(Number(limit))
       .skip((Number(page) - 1) * Number(limit));
@@ -765,7 +705,7 @@ export const getAllAccessibleFiles = async (req: AuthRequest, res: Response) => 
 
     const files = await File.find(query)
       .populate('uploaderId', 'username')
-      .populate('groupId', 'title')
+      .populate( 'title')
       .sort({ createdAt: -1 })
       .limit(Number(limit))
       .skip((Number(page) - 1) * Number(limit));

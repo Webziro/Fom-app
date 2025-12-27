@@ -5,7 +5,7 @@ Finfom is a robust document management and secure sharing platform built using N
 
 ## Tools
 - Node.js & TypeScript: High-performance server-side logic with static typing for maintainability.
-- MongoDB & Mongoose: Flexible NoSQL data modeling for documents, folders, and group structures.
+- MongoDB & Mongoose: Flexible NoSQL data modeling for documents, and folders
 - Redis: In-memory data store used for API response caching to optimize public resource access.
 - Cloudinary: Integrated cloud storage for secure asset hosting and optimized file delivery.
 - Multer: Efficient handling of multipart/form-data for seamless document uploads.
@@ -115,7 +115,6 @@ _Multipart Form Data_
 - `file`: binary data (PDF, JPG, PNG, DOCX)
 - `title`: "Quarterly Report"
 - `description`: "Final version for Q3"
-- `groupId`: "64f8a..."
 - `visibility`: "private" | "public" | "password"
 - `password`: "secret123" (if visibility is password)
 
@@ -177,25 +176,6 @@ _Header: Authorization: Bearer <token>_
     "storageUsed": 10485760,
     "topFiles": [...],
     "fileTypes": [{"_id": "application/pdf", "count": 10}]
-  }
-}
-```
-
-#### POST /api/groups
-**Request**:
-```json
-{
-  "title": "work_docs",
-  "description": "Professional documentation"
-}
-```
-**Response**:
-```json
-{
-  "success": true,
-  "data": {
-    "id": "64f8a7b2c9d4e5...",
-    "displayName": "Work docs"
   }
 }
 ```

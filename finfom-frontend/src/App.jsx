@@ -12,7 +12,6 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import DashboardPage from './pages/DashboardPage';
 import FilesPage from './pages/FilesPage';
-import GroupsPage from './pages/GroupsPage';
 import ProfilePage from './pages/ProfilePage';
 import PublicFilePage from './pages/PublicFilePage';
 import AnalyticsPage from './pages/AnalyticsPage';
@@ -47,9 +46,7 @@ function App() {
             <Route path="/files" element={
               <PrivateRoute><FilesPage /></PrivateRoute>
             } />
-            <Route path="/groups" element={
-              <PrivateRoute><GroupsPage /></PrivateRoute>
-            } />
+            
             <Route path="/profile" element={
               <PrivateRoute><ProfilePage /></PrivateRoute>
             } />

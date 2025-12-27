@@ -18,7 +18,6 @@ export interface IFile extends Document {
   title: string;
   description?: string;
   uploaderId: mongoose.Types.ObjectId;
-  groupId?: mongoose.Types.ObjectId;
   cloudinaryId: string;
   url: string;
   secureUrl: string;
@@ -58,11 +57,6 @@ const FileSchema = new Schema<IFile>({
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: true,
-    index: true
-  },
-  groupId: {
-    type: Schema.Types.ObjectId,
-    ref: 'Group',
     index: true
   },
   // Note: The top-level cloudinaryId, url, secureUrl, size, and fileType
@@ -151,8 +145,7 @@ FileSchema.methods.comparePassword = async function(candidatePassword: string) {
 };
 
 FileSchema.index({ title: 'text', description: 'text' });
-// Composite index for uploaderId, title, and groupId to optimize common queries
-FileSchema.index({ uploaderId: 1, title: 1, groupId: 1 });
-FileSchema.index({ fileHash: 1 });
+FileSchema.index({ uploaderId: 1, title: 1 });
+FileSchema.index({ fileHash: 1, uploaderId: 1 });
 
 export default mongoose.model<IFile>('File', FileSchema);

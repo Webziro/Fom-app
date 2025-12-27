@@ -48,7 +48,6 @@ const Layout = ({ children }) => {
   const menuItems = [
     { path: '/dashboard', icon: Home, label: 'Dashboard' },
     { path: '/files', icon: Upload, label: 'My Files' },
-    { path: '/groups', icon: FolderOpen, label: 'Groups' },
     { path: '/analytics', icon: TrendingUp, label: 'Analytics' },
     { path: '/profile', icon: User, label: 'Profile' },
   ];
