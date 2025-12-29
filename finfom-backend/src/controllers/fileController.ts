@@ -862,6 +862,10 @@ export const getAnalytics = async (req: AuthRequest, res: Response) => {
       count: fileTypesMap[type],
     }));
 
+console.log('Analytics data computed for user:', {
+  totalDownloads, totalFiles, storageUsed, 
+});
+
     res.json({
       success: true,
       data: {
