@@ -269,6 +269,14 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
 
     await file.save();
 
+    console.log('File moved — new folderId:', file.folderId);
+    console.log('Full file after move:', {
+      _id: file._id,
+      title: file.title,
+      folderId: file.folderId,
+      uploaderId: file.uploaderId,
+    });
+
     res.json({
       success: true,
       data: file,
@@ -646,6 +654,80 @@ export const restoreFileVersion = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to restore version', error: error.message });
+  }
+};
+
+export const getMyFiles = async (req: AuthRequest, res: Response) => {
+  try {
+    const { page = 1, limit = 10, search, folderId } = req.query;
+    const userId = req.user!._id.toString();
+
+    const cacheKey = `myFiles:${userId}:${page}:${limit}:${search || 'none'}:${folderId || 'root'}`;
+
+    // Check Redis cache
+    let cached = null;
+    try {
+      cached = await redisClient.get(cacheKey);
+    } catch (redisErr) {
+      // Silent ignore — Redis failed, fall back to DB
+    }
+
+    if (cached) {
+      return res.json(JSON.parse(cached));
+    }
+
+    // Build query
+    const query: any = {
+      uploaderId: req.user!._id,
+    };
+
+    // Folder filtering
+    if (folderId) {
+      query.folderId = folderId;
+    } else {
+      query.folderId = null; // Root files only
+    }
+
+    // Search
+    if (search) {
+      query.$text = { $search: search as string };
+    }
+
+    // Fetch files (paginated)
+    const files = await File.find(query)
+      .populate('uploaderId', 'username _id')
+      .sort({ createdAt: -1 })
+      .limit(Number(limit))
+      .skip((Number(page) - 1) * Number(limit));
+
+    // Count total (for pagination)
+    const total = await File.countDocuments({
+      uploaderId: req.user!._id,
+      ...(search && { $text: { $search: search as string } }),
+    });
+
+    const response = {
+      success: true,
+      data: files,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        pages: Math.ceil(total / Number(limit)),
+      },
+    };
+
+    // Cache response
+    try {
+      await redisClient.setEx(cacheKey, 300, JSON.stringify(response)); // 5 minutes
+    } catch (redisErr) {
+      // Silent ignore
+    }
+
+    res.json(response);
+  } catch (error: any) {
+    console.error('getMyFiles error:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };
 

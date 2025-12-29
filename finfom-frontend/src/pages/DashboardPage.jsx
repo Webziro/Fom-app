@@ -32,6 +32,12 @@ const DashboardPage = () => {
     queryFn: () => filesAPI.getMyFiles({ folderId: null, limit: 5 }),
   });
 
+  console.log('Dashboard filesData:', filesData);
+  console.log('Dashboard files array:', filesData?.data);
+  console.log('Dashboard total:', filesData?.pagination?.total);
+
+  
+
 
   const deleteMutation = useMutation({
     mutationFn: filesAPI.deleteFile,
@@ -45,7 +51,11 @@ const DashboardPage = () => {
     },
   });
 
-  const files = filesData?.data || [];
+  const files = filesData?.data || []; // Recent root files (for list)
+
+  const totalFiles = filesData?.pagination?.total || 0;
+  const totalDownloads = files.reduce((sum, file) => sum + (file.downloads || 0), 0); 
+  const storageUsed = files.reduce((sum, file) => sum + file.size, 0);
 
   const handleDownload = async (fileId) => {
     try {
@@ -94,25 +104,25 @@ const DashboardPage = () => {
   };
 
   const stats = [
-    {
-      label: 'Total Files',
-      value: filesData?.pagination?.total || 0,
-      icon: FileText,
-      color: 'bg-blue-100 text-blue-600',
-    },
-    {
-      label: 'Total Downloads',
-      value: files.reduce((sum, file) => sum + (file.downloads || 0), 0),
-      icon: Download,
-      color: 'bg-purple-100 text-purple-600',
-    },
-    {
-      label: 'Storage Used',
-      value: formatBytes(files.reduce((sum, file) => sum + (file.size || 0), 0)),
-      icon: TrendingUp,
-      color: 'bg-orange-100 text-orange-600',
-    },
-  ];
+  {
+    label: 'Total Files',
+    value: totalFiles, 
+    icon: FileText,
+    color: 'bg-blue-100 text-blue-600',
+  },
+  {
+    label: 'Total Downloads',
+    value: totalDownloads,
+    icon: Download,
+    color: 'bg-purple-100 text-purple-600',
+  },
+  {
+    label: 'Storage Used',
+    value: formatBytes(storageUsed),
+    icon: TrendingUp,
+    color: 'bg-orange-100 text-orange-600',
+  },
+];
 
   return (
     <Layout>

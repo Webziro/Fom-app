@@ -1,7 +1,7 @@
 import express from 'express';
 import {
   uploadFile,
-  //getMyFiles,
+  getMyFiles,
   getFile,
   downloadFile,
   updateFile,
@@ -43,7 +43,7 @@ router.post(
   uploadFile
 );
 
-//router.get('/', protect, getMyFiles);
+router.get('/', protect, getMyFiles);
 router.get('/accessible', protect, getAllAccessibleFiles);
 
 router.put('/:id', protect, updateFile);
