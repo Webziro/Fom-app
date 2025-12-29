@@ -29,7 +29,7 @@ const DashboardPage = () => {
 
   const { data: filesData } = useQuery({
     queryKey: ['myFiles'],
-    queryFn: () => filesAPI.getMyFiles({ limit: 5 }),
+    queryFn: () => filesAPI.getMyFiles({ folderId: null, limit: 5 }),
   });
 
 
