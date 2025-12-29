@@ -96,7 +96,7 @@ const DashboardPage = () => {
   const stats = [
     {
       label: 'Total Files',
-      value: filesData?.data?.pagination?.total || 0,
+      value: filesData?.pagination?.total || 0,
       icon: FileText,
       color: 'bg-blue-100 text-blue-600',
     },
