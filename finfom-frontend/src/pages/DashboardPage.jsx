@@ -45,7 +45,7 @@ const DashboardPage = () => {
     },
   });
 
-  const files = filesData?.data?.data || [];
+  const files = filesData?.data || [];
 
   const handleDownload = async (fileId) => {
     try {
