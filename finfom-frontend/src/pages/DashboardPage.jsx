@@ -27,14 +27,28 @@ const DashboardPage = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const { data: filesData } = useQuery({
-    queryKey: ['myFiles'],
-    queryFn: () => filesAPI.getMyFiles({ folderId: null, limit: 5 }),
-  });
+  
+  // Files query
+const { data: filesData } = useQuery({
+  queryKey: ['myFiles', 'root', 'limit5'],
+  queryFn: () => filesAPI.getMyFiles({ folderId: null, limit: 5 }),
+});
 
-  console.log('Dashboard filesData:', filesData);
-  console.log('Dashboard files array:', filesData?.data);
-  console.log('Dashboard total:', filesData?.pagination?.total);
+// Analytics query
+const { data: analyticsData } = useQuery({
+  queryKey: ['analytics'],
+  queryFn: () => filesAPI.getAnalytics(),
+});
+
+const files = filesData?.data?.data || []; // ← files array
+const totalFiles = filesData?.data?.pagination?.total || 0; // ← ALL files
+const totalDownloads = analyticsData?.data?.totalDownloads || 0;
+const storageUsed = analyticsData?.data?.storageUsed || 0;
+
+console.log('Analytics data:', analyticsData);
+console.log('Dashboard filesData:', filesData);
+console.log('Dashboard files array:', filesData?.data);
+console.log('Dashboard total:', filesData?.pagination?.total);
 
   
 
@@ -51,11 +65,7 @@ const DashboardPage = () => {
     },
   });
 
-  const files = filesData?.data || []; // Recent root files (for list)
-
-  const totalFiles = filesData?.pagination?.total || 0;
-  const totalDownloads = files.reduce((sum, file) => sum + (file.downloads || 0), 0); 
-  const storageUsed = files.reduce((sum, file) => sum + file.size, 0);
+ 
 
   const handleDownload = async (fileId) => {
     try {
@@ -106,7 +116,7 @@ const DashboardPage = () => {
   const stats = [
   {
     label: 'Total Files',
-    value: totalFiles, 
+    value: totalFiles,
     icon: FileText,
     color: 'bg-blue-100 text-blue-600',
   },
