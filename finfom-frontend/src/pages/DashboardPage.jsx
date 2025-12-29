@@ -29,26 +29,29 @@ const DashboardPage = () => {
 
   
   // Files query
-const { data: filesData } = useQuery({
-  queryKey: ['myFiles', 'root', 'limit5'],
-  queryFn: () => filesAPI.getMyFiles({ folderId: null, limit: 5 }),
-});
+  const { data: filesResponse } = useQuery({
+    queryKey: ['myFiles', 'root', 'limit5'],
+    queryFn: () => filesAPI.getMyFiles({ folderId: null, limit: 5 }),
+  });
 
 // Analytics query
-const { data: analyticsData } = useQuery({
-  queryKey: ['analytics'],
-  queryFn: () => filesAPI.getAnalytics(),
-});
+  const { data: analyticsResponse } = useQuery({
+    queryKey: ['analytics'],
+    queryFn: () => filesAPI.getAnalytics(),
+  });
 
-const files = filesData?.data?.data || []; // ← files array
-const totalFiles = filesData?.data?.pagination?.total || 0; // ← ALL files
-const totalDownloads = analyticsData?.data?.totalDownloads || 0;
-const storageUsed = analyticsData?.data?.storageUsed || 0;
+  const backendFiles = filesResponse?.data || {};
+  const files = backendFiles.data || [];
 
-console.log('Analytics data:', analyticsData);
-console.log('Dashboard filesData:', filesData);
-console.log('Dashboard files array:', filesData?.data);
-console.log('Dashboard total:', filesData?.pagination?.total);
+  const totalFiles = backendFiles.pagination?.total || 0;
+  const totalDownloads = analyticsResponse?.data?.totalDownloads || 0;
+  const storageUsed = analyticsResponse?.data?.storageUsed || 0;
+
+
+console.log('Analytics data:', analyticsResponse?.data);
+console.log('Dashboard filesData:', filesResponse?.data);
+console.log('Dashboard files array:', backendFiles?.data);
+console.log('Dashboard total:', backendFiles?.pagination?.total);
 
   
 
