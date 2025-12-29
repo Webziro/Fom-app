@@ -12,16 +12,22 @@ const MoveToFolderModal = ({ file, folders, onClose }) => {
   const moveMutation = useMutation({
     mutationFn: () => filesAPI.updateFile(file._id, { folderId: selectedFolder || null }),
     onSuccess: () => {
-    toast.success('File moved successfully!');
+      toast.success('File moved successfully!');
 
-    // Invalidate all dashboard file lists (root + any pagination/search)
-    queryClient.invalidateQueries({ queryKey: ['myFiles'], exact: false });
+  // Invalidate dashboard list (root + all pages/search)
+  queryClient.invalidateQueries({ queryKey: ['myFiles'], exact: false });
 
-    // Invalidate analytics metrics (Total Files, etc.)
-    queryClient.invalidateQueries({ queryKey: ['analytics'], exact: false });
+  // Invalidate analytics
+  queryClient.invalidateQueries({ queryKey: ['analytics'], exact: false });
 
-    onClose();
-    },
+  // Invalidate old folder (if moving from a folder, or root)
+  queryClient.invalidateQueries({ queryKey: ['folderFiles', file.folderId || 'root'], exact: false });
+
+  // Invalidate new folder (the target folder)
+  queryClient.invalidateQueries({ queryKey: ['folderFiles', selectedFolder], exact: false });
+
+  onClose();
+},
     onError: (error) => {
       toast.error(error.response?.data?.message || 'Failed to move file');
     },
