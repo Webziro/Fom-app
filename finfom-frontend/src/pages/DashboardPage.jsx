@@ -50,13 +50,23 @@ const deleteMutation = useMutation({
   mutationFn: filesAPI.deleteFile,
   onSuccess: () => {
     toast.success('File deleted successfully');
-    queryClient.invalidateQueries({ queryKey: ['myFiles'] });
+
+    // Invalidate dashboard root list
+    queryClient.invalidateQueries({ queryKey: ['myFiles'], exact: false });
+
+    // Invalidate analytics
+    queryClient.invalidateQueries({ queryKey: ['analytics'], exact: false });
+
+    // Invalidate current folder view (critical!)
+    queryClient.invalidateQueries({ queryKey: ['folderFiles', id], exact: false }); // id from useParams()
+
     setOpenMenuId(null);
   },
   onError: (error) => {
     toast.error(error.response?.data?.message || 'Failed to delete file');
   },
 });
+
 
  
 
