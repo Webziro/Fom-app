@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import Button from '../components/common/Button';
 import FilePreviewModal from '../components/files/FilePreviewModal';
 import { useEffect, useState, useRef } from 'react';  
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 const FolderViewPage = () => {
   const { id } = useParams();
@@ -44,6 +45,22 @@ const FolderViewPage = () => {
     setOpenMenuId(openMenuId === fileId ? null : fileId);
   };
 
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: filesAPI.deleteFile,
+    onSuccess: () => {
+      toast.success('File deleted');
+      queryClient.invalidateQueries({ queryKey: ['folderFiles', id] });
+      queryClient.invalidateQueries({ queryKey: ['myFiles'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+      setOpenMenuId(null);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to delete file');
+    },
+  });
+
   const handleDownload = async (fileId) => {
     try {
       const response = await filesAPI.downloadFile(fileId);
@@ -63,9 +80,7 @@ const FolderViewPage = () => {
 
   const handleDelete = (fileId) => {
     if (window.confirm('Are you sure?')) {
-      // Your delete mutation here
-      toast.success('File deleted');
-      setOpenMenuId(null);
+      deleteMutation.mutate(fileId);
     }
   };
 
