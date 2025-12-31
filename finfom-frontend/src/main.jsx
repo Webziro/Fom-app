@@ -1,3 +1,10 @@
+
+// Polyfill process.version to prevent readable-stream slice error
+if (typeof process === 'undefined' || !process.version) {
+  window.process = window.process || {};
+  window.process.version = 'v18.0.0';
+}
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.jsx';

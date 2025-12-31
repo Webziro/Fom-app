@@ -57,9 +57,14 @@ document.addEventListener('mousedown', handleClickOutside);
 
 // Fetch files with react-query
 const { data, isLoading } = useQuery({
-  queryKey: ['accessibleFiles', searchTerm],
-  queryFn: () => filesAPI.getAllAccessibleFiles({ search: searchTerm, limit: 50 }),
+  queryKey: ['myFiles', searchTerm],
+  queryFn: () => filesAPI.getMyFiles({ search: searchTerm, limit: 50, folderId: null }),
 });
+
+// const { data, isLoading } = useQuery({
+//   queryKey: ['accessibleFiles', searchTerm],
+//   queryFn: () => filesAPI.getAllAccessibleFiles({ search: searchTerm, limit: 50, folderId: null }),
+// });
 
 // Fetch folders with react-query
 const { data: foldersData } = useQuery({

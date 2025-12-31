@@ -1,4 +1,4 @@
-import { useContext, useState, useRef, useEffect } from 'react';
+import React, { useContext, useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { filesAPI } from '../api/files';
 import Layout from '../components/layout/Layout';
@@ -39,37 +39,24 @@ const { data: analyticsData } = useQuery({
   queryFn: () => filesAPI.getAnalytics(),
 });
 
+//
 const files = filesData?.data?.data || []; // recent root files
-
 const totalFiles = filesData?.data?.pagination?.total || 0; // ALL files
-
 const totalDownloads = analyticsData?.data?.data?.totalDownloads || 0;
 const storageUsed = analyticsData?.data?.data?.storageUsed || 0;
 
-
-
-console.log('Analytics data:', analyticsData?.data);
-console.log('Dashboard filesData:', filesData?.data); 
-console.log('Dashboard files array:', files);
-console.log('Dashboard total:', totalFiles);
-
-console.log('Analytics backend data:', analyticsData?.data);
-console.log('totalDownloads raw:', analyticsData?.data?.totalDownloads);
-console.log('storageUsed raw:', analyticsData?.data?.storageUsed);
-  
-
-
-  const deleteMutation = useMutation({
-    mutationFn: filesAPI.deleteFile,
-    onSuccess: () => {
-      toast.success('File deleted successfully');
-      queryClient.invalidateQueries({ queryKey: ['myFiles'] });
-      setOpenMenuId(null);
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to delete file');
-    },
-  });
+//Delete Mutation
+const deleteMutation = useMutation({
+  mutationFn: filesAPI.deleteFile,
+  onSuccess: () => {
+    toast.success('File deleted successfully');
+    queryClient.invalidateQueries({ queryKey: ['myFiles'] });
+    setOpenMenuId(null);
+  },
+  onError: (error) => {
+    toast.error(error.response?.data?.message || 'Failed to delete file');
+  },
+});
 
  
 

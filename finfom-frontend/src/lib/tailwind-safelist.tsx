@@ -1,4 +1,6 @@
-// src/lib/tailwind-safelist.jsx
+// src/lib/tailwind-safelist.tsx
+import React from 'react';
+
 export default function TailwindSafelist() {
   return (
     <>
