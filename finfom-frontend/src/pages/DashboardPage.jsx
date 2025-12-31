@@ -28,7 +28,7 @@ const DashboardPage = () => {
   }, []);
 
   
-  // Files query
+  // This is Files query
   const { data: filesData } = useQuery({
   queryKey: ['myFiles', 'root', 'limit5'],
   queryFn: () => filesAPI.getMyFiles({ folderId: null, limit: 5 }),
