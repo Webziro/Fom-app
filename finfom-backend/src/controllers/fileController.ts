@@ -330,6 +330,11 @@ export const getFile = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: 'File not found' });
     }
 
+    // Expiry check
+    if (file.expiresAt && new Date() > file.expiresAt) {
+      return res.status(410).json({ message: 'File has expired' });
+    }
+
     // Public files: Allow everyone
     if (file.visibility === 'public') {
       return res.json({ success: true, data: file });
