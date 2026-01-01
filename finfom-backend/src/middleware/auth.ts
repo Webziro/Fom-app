@@ -41,3 +41,25 @@ export const admin = (req: AuthRequest, res: Response, next: NextFunction) => {
     res.status(403).json({ message: 'Not authorized as admin' });
   }
 };
+
+// Optional attach user: if Authorization header with valid token is present,
+// set `req.user`. If no token or invalid token, continue without failing.
+export const attachUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    let token;
+    if (req.headers.authorization?.startsWith('Bearer')) {
+      token = req.headers.authorization.split(' ')[1];
+    }
+
+    if (!token) {
+      return next();
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload;
+    req.user = await User.findById(decoded.id).select('-password');
+    return next();
+  } catch (error) {
+    // Invalid token — ignore and proceed as unauthenticated
+    return next();
+  }
+};

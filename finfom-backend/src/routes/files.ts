@@ -18,7 +18,7 @@ import {
   deleteFolder,
   getFolder
 } from '../controllers/fileController';
-import { protect } from '../middleware/auth';
+import { protect, attachUser } from '../middleware/auth';
 import { upload } from '../middleware/upload';
 import { uploadLimiter, downloadLimiter } from '../middleware/rateLimiter';
 import { cache } from '../middleware/cache';
@@ -28,7 +28,9 @@ const router = express.Router();
 // Public routes
 router.get('/public', cache(300), getPublicFiles);
 router.post('/:id/access', getFile); // Public access for password-protected files
-router.post('/:id/download', downloadLimiter, downloadFile);
+// Allow optional auth for downloads: public files can be downloaded anonymously,
+// private files require the requester to be the owner (attachUser fills req.user if token present).
+router.post('/:id/download', downloadLimiter, attachUser, downloadFile);
 
 // Protected routes
 router.post('/:id/verify-password', protect, verifyFilePassword);

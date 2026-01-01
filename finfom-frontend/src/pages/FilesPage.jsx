@@ -94,36 +94,39 @@ const handleDownload = async (fileId) => {
   try {
     const response = await filesAPI.downloadFile(fileId);
 
-    // Create blob URL from response
-const blob = new Blob([response.data]);
-const url = window.URL.createObjectURL(blob);
+    // Get MIME type from Content-Type header
+    const contentType = response.headers['content-type'] || 'application/octet-stream';
+    // Create blob with correct MIME type
+    const blob = new Blob([response.data], { type: contentType });
+    const url = window.URL.createObjectURL(blob);
 
-// Get filename from Content-Disposition header or use default
-const contentDisposition = response.headers['content-disposition'];
-let fileName = 'download';
-if (contentDisposition) {
-  const fileNameMatch = contentDisposition.match(/filename="(.+)"/); if (fileNameMatch) {
-    fileName = fileNameMatch[1];
+    // Get filename from Content-Disposition header or use default
+    const contentDisposition = response.headers['content-disposition'];
+    let fileName = 'download';
+    if (contentDisposition) {
+      const fileNameMatch = contentDisposition.match(/filename="(.+)"/);
+      if (fileNameMatch) {
+        fileName = decodeURIComponent(fileNameMatch[1]);
+      }
+    }
+
+    // Create temporary link and trigger download
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+
+    // Cleanup
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    toast.success('Download started');
+    setOpenMenuId(null);
+  } catch (error) {
+    toast.error('Failed to download file');
+    console.error('Download error:', error);
   }
-}
-
-// Create temporary link and trigger download
-const link = document.createElement('a');
-link.href = url;
-link.download = fileName;
-document.body.appendChild(link);
-link.click();
-
-// Cleanup
-document.body.removeChild(link);
-window.URL.revokeObjectURL(url);
-
-toast.success('Download started');
-setOpenMenuId(null);
-} catch (error) {
-toast.error('Failed to download file');
-console.error('Download error:', error);
-}
 };
 
 // Delete handler

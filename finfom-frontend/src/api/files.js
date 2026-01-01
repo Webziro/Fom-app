@@ -25,6 +25,7 @@ export const filesAPI = {
 
   downloadFile: (id, password = '') => axios.post(`api/files/${id}/download`, { password }, {
     responseType: 'blob',
+    headers: (localStorage.getItem('token')) ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {},
   }),
 
   downloadPublicFile: (id) => publicAxios.post(`api/files/${id}/download`, {}, {

@@ -64,11 +64,26 @@ const FolderViewPage = () => {
   const handleDownload = async (fileId) => {
     try {
       const response = await filesAPI.downloadFile(fileId);
-      const blob = new Blob([response.data]);
+      
+      // Get MIME type from Content-Type header
+      const contentType = response.headers['content-type'] || 'application/octet-stream';
+      // Create blob with correct MIME type
+      const blob = new Blob([response.data], { type: contentType });
       const url = window.URL.createObjectURL(blob);
+      
+      // Get filename from Content-Disposition header or use default
+      const contentDisposition = response.headers['content-disposition'];
+      let fileName = 'download';
+      if (contentDisposition) {
+        const fileNameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (fileNameMatch) {
+          fileName = decodeURIComponent(fileNameMatch[1]);
+        }
+      }
+      
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'download';
+      link.download = fileName;
       link.click();
       window.URL.revokeObjectURL(url);
       toast.success('Download started');
