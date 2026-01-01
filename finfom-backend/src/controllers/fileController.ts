@@ -438,38 +438,42 @@ if (!req.user || file.uploaderId.toString() !== req.user._id.toString()) {
   }
 }
 
-    // Build correct Cloudinary URL (force raw + attachment)
-    let publicId = file.cloudinaryId;
-    if (!publicId.includes('/v')) {
-      publicId = `v1/${publicId}`;
-    }
+    // Build correct Cloudinary URL (force raw + attachment)
+    let publicId = file.cloudinaryId;
+    if (!publicId.includes('/v')) {
+      publicId = `v1/${publicId}`;
+    }
 
-    let downloadUrl = `https://res.cloudinary.com/dtr6g5tbm/raw/upload/fl_attachment/${publicId}`;
+    let downloadUrl = `https://res.cloudinary.com/dtr6g5tbm/raw/upload/fl_attachment/${publicId}`;
 
-    // Add filename if possible
-    const ext = file.title.split('.').pop() || 'pdf';
-    downloadUrl += `.${ext}`;
+    // Add filename if possible
+    const ext = file.title.split('.').pop() || 'pdf';
+    downloadUrl += `.${ext}`;
 
-    const response = await axios({
-      method: 'GET',
-      url: downloadUrl,
-      responseType: 'stream',
-      timeout: 30000,
-      validateStatus: (status) => status < 500, // Don't throw on 404
-    });
+    console.log('[Download] Fetching from Cloudinary:', downloadUrl);
 
-    // Set headers
-    res.setHeader('Content-Type', file.fileType || 'application/octet-stream');
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.title)}"`);
+    // Buffer the entire file before sending (not streaming)
+    const response = await axios({
+      method: 'GET',
+      url: downloadUrl,
+      responseType: 'arraybuffer', // Buffer entire response instead of streaming
+      timeout: 30000,
+      validateStatus: (status) => status < 500,
+    });
 
-    response.data.pipe(res);
+    console.log('[Download] Received bytes:', response.data.length);
 
-    response.data.on('error', (err) => {
-      console.error('Stream error:', err);
-      if (!res.headersSent) res.status(500).json({ message: 'Stream failed' });
-    });
+    if (!response.data || response.data.length === 0) {
+      return res.status(404).json({ message: 'File content is empty from storage' });
+    }
 
-  } catch (error: any) {
+    // Set headers
+    res.setHeader('Content-Type', file.fileType || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.title)}"`);
+    res.setHeader('Content-Length', response.data.length);
+
+    // Send buffered data
+    res.send(response.data);  } catch (error: any) {
     console.error('Download failed:', {
       message: error.message,
       status: error.response?.status,

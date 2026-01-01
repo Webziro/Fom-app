@@ -92,40 +92,67 @@ const [shareFile, setShareFile] = useState(null);  // New
 
 const handleDownload = async (fileId) => {
   try {
+    console.log(`[Download] Starting for: ${fileId}`);
     const response = await filesAPI.downloadFile(fileId);
-
-    // Get MIME type from Content-Type header
+    if (!response || !response.data) throw new Error('Invalid response');
+    
+    console.log('[Download] Response status:', response.status);
+    console.log('[Download] Response data type:', typeof response.data, response.data instanceof Blob);
+    
     const contentType = response.headers['content-type'] || 'application/octet-stream';
-    // Create blob with correct MIME type
-    const blob = new Blob([response.data], { type: contentType });
-    const url = window.URL.createObjectURL(blob);
-
-    // Get filename from Content-Disposition header or use default
     const contentDisposition = response.headers['content-disposition'];
     let fileName = 'download';
     if (contentDisposition) {
-      const fileNameMatch = contentDisposition.match(/filename="(.+)"/);
-      if (fileNameMatch) {
-        fileName = decodeURIComponent(fileNameMatch[1]);
+      const match = contentDisposition.match(/filename="?([^";]+)"?/);
+      if (match && match[1]) {
+        try {
+          fileName = decodeURIComponent(match[1]);
+        } catch (e) {
+          fileName = match[1];
+        }
       }
     }
-
-    // Create temporary link and trigger download
+    
+    console.log('[Download] Type:', contentType, 'Name:', fileName);
+    console.log('[Download] Blob size:', response.data.size, 'bytes');
+    
+    // Check if blob has content
+    if (!response.data || response.data.size === 0) {
+      throw new Error('File is empty or not received from server');
+    }
+    
+    // Ensure blob has correct MIME type
+    let blob = response.data;
+    if (blob.type !== contentType) {
+      console.log('[Download] Re-creating blob with correct type:', contentType);
+      blob = new Blob([blob], { type: contentType });
+    }
+    
+    const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = fileName;
+    link.style.display = 'none';
     document.body.appendChild(link);
+    
+    console.log('[Download] Triggering browser download...');
     link.click();
-
-    // Cleanup
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-
+    
+    setTimeout(() => {
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      console.log('[Download] Complete');
+    }, 100);
+    
     toast.success('Download started');
     setOpenMenuId(null);
   } catch (error) {
-    toast.error('Failed to download file');
-    console.error('Download error:', error);
+    console.error('[Download] Error:', error.message);
+    let msg = 'Failed to download file';
+    if (error.response?.status === 403) msg = 'No permission to download this file';
+    else if (error.response?.status === 404) msg = 'File not found on server';
+    else if (error.message?.includes('empty')) msg = 'File is empty or corrupted';
+    toast.error(msg);
   }
 };
 
