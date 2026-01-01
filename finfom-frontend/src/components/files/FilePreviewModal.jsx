@@ -21,12 +21,15 @@ const FilePreviewModal = ({ file, onClose, onDownload, currentUserId }) => {
 
   // Fetch file blob on mount for authenticated preview
   useEffect(() => {
+    let currentBlobUrl = null;
+
     const fetchFileBlob = async () => {
       try {
         const response = await axiosInstance.get(`/api/files/${file._id}/preview`, {
           responseType: 'blob',
         });
         const url = URL.createObjectURL(response.data);
+        currentBlobUrl = url;
         setBlobUrl(url);
       } catch (error) {
         console.error('Failed to fetch file preview:', error);
@@ -38,8 +41,8 @@ const FilePreviewModal = ({ file, onClose, onDownload, currentUserId }) => {
 
     return () => {
       // Cleanup blob URL on unmount
-      if (blobUrl) {
-        URL.revokeObjectURL(blobUrl);
+      if (currentBlobUrl) {
+        URL.revokeObjectURL(currentBlobUrl);
       }
     };
   }, [file._id]);

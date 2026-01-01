@@ -977,23 +977,26 @@ export const previewFile = async (req: AuthRequest, res: Response) => {
     // Permission checks
     const isOwner = req.user && file.uploaderId._id.toString() === req.user._id.toString();
     
-    if (file.visibility === 'private') {
-      if (!isOwner) {
-        return res.status(403).json({ message: 'Access denied' });
-      }
+    // Private files: only owner can preview
+    if (file.visibility === 'private' && !isOwner) {
+      return res.status(403).json({ message: 'Access denied' });
     }
 
-    // For protected files, check password
-    if (file.isPasswordProtected && !isOwner) {
+    // Password-protected files: only owner OR those with correct password
+    if (file.visibility === 'password' && !isOwner) {
+      // Check if password was verified in this session
       const passwordAttempts = req.session?.passwordAttempts || {};
       if (!passwordAttempts[file._id]) {
         return res.status(403).json({ message: 'Password required' });
       }
     }
 
+    // Public files: anyone can preview (no additional checks needed)
+    // Owners can always preview their own files
+
     const previewUrl = file.secureUrl;
     
-    console.log('[Preview] Fetching:', { fileId: req.params.id, title: file.title, userId: req.user?._id });
+    console.log('[Preview] Fetching:', { fileId: req.params.id, title: file.title, userId: req.user?._id, visibility: file.visibility, isOwner });
 
     const response = await axios({
       method: 'GET',

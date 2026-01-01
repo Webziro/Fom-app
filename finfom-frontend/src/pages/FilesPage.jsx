@@ -57,14 +57,9 @@ document.addEventListener('mousedown', handleClickOutside);
 
 // Fetch files with react-query
 const { data, isLoading } = useQuery({
-  queryKey: ['myFiles', searchTerm],
-  queryFn: () => filesAPI.getMyFiles({ search: searchTerm, limit: 50, folderId: null }),
+  queryKey: ['accessibleFiles', searchTerm],
+  queryFn: () => filesAPI.getAllAccessibleFiles({ search: searchTerm, limit: 50, folderId: null }),
 });
-
-// const { data, isLoading } = useQuery({
-//   queryKey: ['accessibleFiles', searchTerm],
-//   queryFn: () => filesAPI.getAllAccessibleFiles({ search: searchTerm, limit: 50, folderId: null }),
-// });
 
 // Fetch folders with react-query
 const { data: foldersData } = useQuery({
@@ -78,6 +73,7 @@ const deleteMutation = useMutation({
   mutationFn: filesAPI.deleteFile,
   onSuccess: () => {
     toast.success('File deleted successfully');
+    queryClient.invalidateQueries({ queryKey: ['accessibleFiles'] });
     queryClient.invalidateQueries({ queryKey: ['myFiles'] });
     setOpenMenuId(null);
   },
@@ -265,7 +261,7 @@ return (
         <div key={file._id} className="card hover:shadow-lg transition-shadow cursor-pointer bg-white dark:bg-gray-800" 
           onClick={async () => {
           await queryClient.invalidateQueries({ 
-            queryKey: ['myFiles'] 
+            queryKey: ['accessibleFiles'] 
           });
             setTimeout(() => setPreviewFile(file), 100);
           }}
@@ -394,7 +390,10 @@ return (
       {/* Upload Modal */}
       {showUpload && (
         <FileUpload
-          onSuccess={() => queryClient.invalidateQueries({ queryKey: ['myFiles'] })}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['accessibleFiles'] });
+            queryClient.invalidateQueries({ queryKey: ['myFiles'] });
+          }}
           onClose={() => setShowUpload(false)}
         />
       )}
