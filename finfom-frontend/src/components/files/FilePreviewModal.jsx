@@ -51,6 +51,13 @@ const FilePreviewModal = ({ file, onClose, onDownload, currentUserId }) => {
     if (fileType.startsWith('video/')) return 'video';
     if (fileType.startsWith('audio/')) return 'audio';
     if (fileType.startsWith('text/') || fileType === 'application/json') return 'text';
+    // Microsoft Office formats
+    if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
+        fileType.includes('word') || file.title?.endsWith('.docx')) return 'docx';
+    if (fileType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
+        fileType.includes('sheet') || file.title?.endsWith('.xlsx')) return 'xlsx';
+    if (fileType === 'application/vnd.openxmlformats-officedocument.presentationml.presentation' || 
+        fileType.includes('presentation') || file.title?.endsWith('.pptx')) return 'pptx';
     return 'other';
   };
 
@@ -134,6 +141,21 @@ const FilePreviewModal = ({ file, onClose, onDownload, currentUserId }) => {
             <iframe
               src={file.secureUrl}
               className="w-full h-full min-h-[400px]"
+              title={file.title}
+            />
+          </div>
+        );
+
+      case 'docx':
+      case 'xlsx':
+      case 'pptx':
+        // Use Google Docs Viewer for Office documents
+        const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(file.secureUrl)}&embedded=true`;
+        return (
+          <div className="bg-gray-100 rounded-lg overflow-hidden" style={{ height: '600px' }}>
+            <iframe
+              src={googleViewerUrl}
+              className="w-full h-full"
               title={file.title}
             />
           </div>
