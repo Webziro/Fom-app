@@ -976,7 +976,7 @@ export const previewFile = async (req: AuthRequest, res: Response) => {
 
     const isOwner = req.user && file.uploaderId._id.toString() === req.user._id.toString();
 
-    // Owner always has full access — no checks needed
+    // Owner always has full access no checks needed
     if (!isOwner) {
       // Non-owner checks
       if (file.visibility === 'private') {
