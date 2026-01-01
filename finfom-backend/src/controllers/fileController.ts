@@ -438,19 +438,23 @@ if (!req.user || file.uploaderId.toString() !== req.user._id.toString()) {
   }
 }
 
-    // Build correct Cloudinary URL (force raw + attachment)
-    let publicId = file.cloudinaryId;
-    if (!publicId.includes('/v')) {
-      publicId = `v1/${publicId}`;
+    // Build Cloudinary download URL
+    // The secureUrl is already stored from the upload response (e.g., result.secure_url)
+    // For downloads, add fl_attachment flag to force download instead of preview
+    let downloadUrl = file.secureUrl;
+    
+    // Modify URL to add attachment flag if not already present
+    if (!downloadUrl.includes('/fl_attachment/')) {
+      downloadUrl = downloadUrl.replace('/upload/', '/upload/fl_attachment/');
     }
-
-    let downloadUrl = `https://res.cloudinary.com/dtr6g5tbm/raw/upload/fl_attachment/${publicId}`;
-
-    // Add filename if possible
-    const ext = file.title.split('.').pop() || 'pdf';
-    downloadUrl += `.${ext}`;
-
-    console.log('[Download] Fetching from Cloudinary:', downloadUrl);
+    
+    console.log('[Download] File details:', {
+      fileId: req.params.id,
+      title: file.title,
+      cloudinaryId: file.cloudinaryId,
+      originalUrl: file.secureUrl,
+      downloadUrl,
+    });
 
     // Buffer the entire file before sending (not streaming)
     const response = await axios({
@@ -461,9 +465,23 @@ if (!req.user || file.uploaderId.toString() !== req.user._id.toString()) {
       validateStatus: (status) => status < 500,
     });
 
-    console.log('[Download] Received bytes:', response.data.length);
+    console.log('[Download] Cloudinary response:', {
+      status: response.status,
+      contentType: response.headers['content-type'],
+      contentLength: response.headers['content-length'],
+      dataLength: response.data.length,
+      dataType: typeof response.data,
+    });
 
+    // If Cloudinary returned an error or empty response, log the actual response
     if (!response.data || response.data.length === 0) {
+      console.error('[Download] Empty file from Cloudinary:', {
+        fileId: req.params.id,
+        cloudinaryId: file.cloudinaryId,
+        url: downloadUrl,
+        responseStatus: response.status,
+        responseText: response.data?.toString?.('utf-8'),
+      });
       return res.status(404).json({ message: 'File content is empty from storage' });
     }
 

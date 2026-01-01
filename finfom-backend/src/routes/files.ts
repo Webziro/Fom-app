@@ -27,6 +27,16 @@ const router = express.Router();
 
 // Public routes
 router.get('/public', cache(300), getPublicFiles);
+
+// IMPORTANT: More specific routes MUST come before generic /:id routes to avoid Express matching /upload as /:id
+router.post(
+  '/upload',
+  protect,
+  uploadLimiter,
+  upload.single('file'),
+  uploadFile
+);
+
 router.post('/:id/access', getFile); // Public access for password-protected files
 // Allow optional auth for downloads: public files can be downloaded anonymously,
 // private files require the requester to be the owner (attachUser fills req.user if token present).
@@ -36,14 +46,6 @@ router.post('/:id/download', downloadLimiter, attachUser, downloadFile);
 router.post('/:id/verify-password', protect, verifyFilePassword);
 router.post('/:id/restore-version', protect, restoreFileVersion);
 router.post('/:id/revert-previous', protect, revertToPreviousVersion);
-
-router.post(
-  '/upload',
-  protect,
-  uploadLimiter,
-  upload.single('file'),
-  uploadFile
-);
 
 router.get('/', protect, getMyFiles);
 router.get('/accessible', protect, getAllAccessibleFiles);
