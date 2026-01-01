@@ -969,7 +969,6 @@ export const deleteFolder = async (req: AuthRequest, res: Response) => {
 };
 
 // Preview file controller - serves file inline for viewing in browser/iframes
-// Preview file controller - serves file inline for viewing in browser/iframes
 export const previewFile = async (req: AuthRequest, res: Response) => {
   try {
     const file = await File.findById(req.params.id).populate('uploaderId', 'username email');
