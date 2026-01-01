@@ -1000,7 +1000,7 @@ export const previewFile = async (req: AuthRequest, res: Response) => {
     // All checks passed — serve the file
     const previewUrl = file.secureUrl;
 
-    console.log('[Preview] Fetching:', { fileId: req.params.id, title: file.title, userId: req.user?._id, visibility: file.visibility, isOwner });
+    // console.log('[Preview] Fetching:', { fileId: req.params.id, title: file.title, userId: req.user?._id, visibility: file.visibility, isOwner });
 
     const response = await axios({
       method: 'GET',
