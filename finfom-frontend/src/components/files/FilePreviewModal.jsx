@@ -1,13 +1,15 @@
 import { X, Download, FileText, Calendar, User as UserIcon, HardDrive, History, Lock } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import VersionHistoryModal from './VersionHistoryModal';
 import { filesAPI } from '../../api/files';
+import axiosInstance from '../../api/axios';
 
 const FilePreviewModal = ({ file, onClose, onDownload, currentUserId }) => {
   const [imageError, setImageError] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [iframeError, setIframeError] = useState(false);
+  const [blobUrl, setBlobUrl] = useState(null);
 
   // Password state
   const [password, setPassword] = useState('');
@@ -16,6 +18,31 @@ const FilePreviewModal = ({ file, onClose, onDownload, currentUserId }) => {
   const [checkingPassword, setCheckingPassword] = useState(false);
 
   if (!file) return null;
+
+  // Fetch file blob on mount for authenticated preview
+  useEffect(() => {
+    const fetchFileBlob = async () => {
+      try {
+        const response = await axiosInstance.get(`/api/files/${file._id}/preview`, {
+          responseType: 'blob',
+        });
+        const url = URL.createObjectURL(response.data);
+        setBlobUrl(url);
+      } catch (error) {
+        console.error('Failed to fetch file preview:', error);
+        // Don't show error toast - some files might not have blob preview available
+      }
+    };
+
+    fetchFileBlob();
+
+    return () => {
+      // Cleanup blob URL on unmount
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+      }
+    };
+  }, [file._id]);
 
   const isOwner = file.uploaderId?._id === currentUserId;
   const needsPassword = file.visibility === 'password' && !isOwner && !isPasswordCorrect;
@@ -73,6 +100,9 @@ const FilePreviewModal = ({ file, onClose, onDownload, currentUserId }) => {
   };
 
   const renderPreview = () => {
+    // Build preview URL - use backend preview endpoint instead of direct Cloudinary URL
+    const getPreviewUrl = (fileId) => `/api/files/${fileId}/preview`;
+
     switch (fileType) {
       case 'image':
         return (
@@ -84,7 +114,7 @@ const FilePreviewModal = ({ file, onClose, onDownload, currentUserId }) => {
               </div>
             ) : (
               <img
-                src={file.secureUrl}
+                src={getPreviewUrl(file._id)}
                 alt={file.title}
                 className="max-w-full max-h-[600px] object-contain rounded"
                 onError={() => setImageError(true)}
@@ -94,6 +124,7 @@ const FilePreviewModal = ({ file, onClose, onDownload, currentUserId }) => {
         );
 
       case 'pdf':
+        const pdfUrl = getPreviewUrl(file._id);
         return (
           <div className="bg-gray-100 rounded-lg overflow-hidden" style={{ height: '600px' }}>
             {iframeError ? (
@@ -110,7 +141,7 @@ const FilePreviewModal = ({ file, onClose, onDownload, currentUserId }) => {
               </div>
             ) : (
               <iframe
-                src={file.secureUrl}
+                src={pdfUrl}
                 className="w-full h-full"
                 title={file.title}
                 onError={() => setIframeError(true)}
@@ -123,7 +154,7 @@ const FilePreviewModal = ({ file, onClose, onDownload, currentUserId }) => {
         return (
           <div className="bg-black rounded-lg overflow-hidden">
             <video
-              src={file.secureUrl}
+              src={`/api/files/${file._id}/preview`}
               controls
               className="w-full max-h-[600px]"
             >
@@ -141,7 +172,7 @@ const FilePreviewModal = ({ file, onClose, onDownload, currentUserId }) => {
                 <p className="font-medium text-gray-900">{file.title}</p>
               </div>
               <audio
-                src={file.secureUrl}
+                src={`/api/files/${file._id}/preview`}
                 controls
                 className="w-full"
               >
@@ -155,7 +186,7 @@ const FilePreviewModal = ({ file, onClose, onDownload, currentUserId }) => {
         return (
           <div className="bg-gray-100 rounded-lg p-4 min-h-[400px] max-h-[600px] overflow-auto">
             <iframe
-              src={file.secureUrl}
+              src={`/api/files/${file._id}/preview`}
               className="w-full h-full min-h-[400px]"
               title={file.title}
             />
@@ -166,7 +197,8 @@ const FilePreviewModal = ({ file, onClose, onDownload, currentUserId }) => {
       case 'xlsx':
       case 'pptx':
         // Use Google Docs Viewer for Office documents
-        const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(file.secureUrl)}&embedded=true`;
+        const previewUrl = `/api/files/${file._id}/preview`;
+        const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(window.location.origin + previewUrl)}&embedded=true`;
         return (
           <div className="bg-gray-100 rounded-lg overflow-hidden" style={{ height: '600px' }}>
             {iframeError ? (

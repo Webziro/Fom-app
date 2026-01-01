@@ -958,13 +958,66 @@ export const deleteFolder = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
-    // Optional: check if folder has files or subfolders
-    await Folder.deleteOne({ _id: req.params.id });
 
-    res.json({ success: true, message: 'Folder deleted' });
-  } catch (error: any) {
-    res.status(500).json({ message: 'Server error' });
-  }
+    // Optional: check if folder has files or subfolders
+    await Folder.deleteOne({ _id: req.params.id });
+
+    res.json({ success: true, message: 'Folder deleted' });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error' });
+  }
 };
 
+// Preview file controller - serves file inline for viewing in browser/iframes
+export const previewFile = async (req: AuthRequest, res: Response) => {
+  try {
+    const file = await File.findById(req.params.id).populate('uploaderId', 'username email');
+    if (!file) return res.status(404).json({ message: 'File not found' });
+
+    // Permission checks
+    const isOwner = req.user && file.uploaderId._id.toString() === req.user._id.toString();
+    
+    if (file.visibility === 'private') {
+      if (!isOwner) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+    }
+
+    // For protected files, check password
+    if (file.isPasswordProtected && !isOwner) {
+      const passwordAttempts = req.session?.passwordAttempts || {};
+      if (!passwordAttempts[file._id]) {
+        return res.status(403).json({ message: 'Password required' });
+      }
+    }
+
+    const previewUrl = file.secureUrl;
+    
+    console.log('[Preview] Fetching:', { fileId: req.params.id, title: file.title, userId: req.user?._id });
+
+    const response = await axios({
+      method: 'GET',
+      url: previewUrl,
+      responseType: 'arraybuffer',
+      timeout: 30000,
+      validateStatus: (status) => status < 500,
+    });
+
+    if (!response.data || response.data.length === 0) {
+      return res.status(404).json({ message: 'File content is empty' });
+    }
+
+    // Inline display headers (not attachment)
+    res.setHeader('Content-Type', file.fileType || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.title)}"`);
+    res.setHeader('Content-Length', response.data.length);
+    res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
+    res.send(response.data);
+  } catch (error: any) {
+    console.error('Preview failed:', error.message);
+    if (!res.headersSent) {
+      res.status(500).json({ message: 'Preview failed' });
+    }
+  }
+};
 

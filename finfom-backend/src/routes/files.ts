@@ -4,6 +4,7 @@ import {
   getMyFiles,
   getFile,
   downloadFile,
+  previewFile,
   updateFile,
   deleteFile,
   getPublicFiles,
@@ -41,6 +42,7 @@ router.post('/:id/access', getFile); // Public access for password-protected fil
 // Allow optional auth for downloads: public files can be downloaded anonymously,
 // private files require the requester to be the owner (attachUser fills req.user if token present).
 router.post('/:id/download', downloadLimiter, attachUser, downloadFile);
+router.get('/:id/preview', attachUser, previewFile); // Preview endpoint (inline display, no auth required but attachUser adds context)
 
 // Protected routes
 router.post('/:id/verify-password', protect, verifyFilePassword);
