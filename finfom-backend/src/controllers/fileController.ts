@@ -969,33 +969,38 @@ export const deleteFolder = async (req: AuthRequest, res: Response) => {
 };
 
 // Preview file controller - serves file inline for viewing in browser/iframes
+// Preview file controller - serves file inline for viewing in browser/iframes
 export const previewFile = async (req: AuthRequest, res: Response) => {
   try {
     const file = await File.findById(req.params.id).populate('uploaderId', 'username email');
     if (!file) return res.status(404).json({ message: 'File not found' });
 
-    // Permission checks
     const isOwner = req.user && file.uploaderId._id.toString() === req.user._id.toString();
-    
-    // Private files: only owner can preview
-    if (file.visibility === 'private' && !isOwner) {
-      return res.status(403).json({ message: 'Access denied' });
-    }
 
-    // Password-protected files: only owner OR those with correct password
-    if (file.visibility === 'password' && !isOwner) {
-      // Check if password was verified in this session
-      const passwordAttempts = req.session?.passwordAttempts || {};
-      if (!passwordAttempts[file._id]) {
-        return res.status(403).json({ message: 'Password required' });
+    // Owner always has full access — no checks needed
+    if (!isOwner) {
+      // Non-owner checks
+      if (file.visibility === 'private') {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+
+      if (file.visibility === 'password') {
+        const passwordAttempts = req.session?.passwordAttempts || {};
+        if (!passwordAttempts[file._id]) {
+          return res.status(403).json({ message: 'Password required' });
+        }
+      }
+
+      // Public files — allow anyone
+      if (file.visibility !== 'public') {
+        // If not public, private, or password — block (safety)
+        return res.status(403).json({ message: 'Access denied' });
       }
     }
 
-    // Public files: anyone can preview (no additional checks needed)
-    // Owners can always preview their own files
-
+    // All checks passed — serve the file
     const previewUrl = file.secureUrl;
-    
+
     console.log('[Preview] Fetching:', { fileId: req.params.id, title: file.title, userId: req.user?._id, visibility: file.visibility, isOwner });
 
     const response = await axios({
@@ -1010,11 +1015,12 @@ export const previewFile = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: 'File content is empty' });
     }
 
-    // Inline display headers (not attachment)
+    // Inline display headers
     res.setHeader('Content-Type', file.fileType || 'application/octet-stream');
     res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.title)}"`);
     res.setHeader('Content-Length', response.data.length);
-    res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+
     res.send(response.data);
   } catch (error: any) {
     console.error('Preview failed:', error.message);
@@ -1023,4 +1029,5 @@ export const previewFile = async (req: AuthRequest, res: Response) => {
     }
   }
 };
+
 
