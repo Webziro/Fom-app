@@ -1010,6 +1010,7 @@ export const previewFile = async (req: AuthRequest, res: Response) => {
       validateStatus: (status) => status < 500,
     });
 
+    // Log response details
     if (!response.data || response.data.length === 0) {
       return res.status(404).json({ message: 'File content is empty' });
     }
