@@ -978,7 +978,7 @@ export const previewFile = async (req: AuthRequest, res: Response) => {
 
     // Owner always has full access no checks needed
     if (!isOwner) {
-      // Non-owner checks
+      // Non-owner checks private and password files
       if (file.visibility === 'private') {
         return res.status(403).json({ message: 'Access denied' });
       }
