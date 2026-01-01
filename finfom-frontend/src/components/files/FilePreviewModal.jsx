@@ -7,6 +7,7 @@ import { filesAPI } from '../../api/files';
 const FilePreviewModal = ({ file, onClose, onDownload, currentUserId }) => {
   const [imageError, setImageError] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [iframeError, setIframeError] = useState(false);
 
   // Password state
   const [password, setPassword] = useState('');
@@ -95,11 +96,26 @@ const FilePreviewModal = ({ file, onClose, onDownload, currentUserId }) => {
       case 'pdf':
         return (
           <div className="bg-gray-100 rounded-lg overflow-hidden" style={{ height: '600px' }}>
-            <iframe
-              src={file.secureUrl}
-              className="w-full h-full"
-              title={file.title}
-            />
+            {iframeError ? (
+              <div className="flex items-center justify-center h-full flex-col gap-4">
+                <FileText className="w-16 h-16 text-gray-400" />
+                <p className="text-gray-600">Preview not available for this PDF</p>
+                <button
+                  onClick={() => onDownload(file._id)}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Download PDF
+                </button>
+              </div>
+            ) : (
+              <iframe
+                src={file.secureUrl}
+                className="w-full h-full"
+                title={file.title}
+                onError={() => setIframeError(true)}
+              />
+            )}
           </div>
         );
 
@@ -153,11 +169,26 @@ const FilePreviewModal = ({ file, onClose, onDownload, currentUserId }) => {
         const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(file.secureUrl)}&embedded=true`;
         return (
           <div className="bg-gray-100 rounded-lg overflow-hidden" style={{ height: '600px' }}>
-            <iframe
-              src={googleViewerUrl}
-              className="w-full h-full"
-              title={file.title}
-            />
+            {iframeError ? (
+              <div className="flex items-center justify-center h-full flex-col gap-4">
+                <FileText className="w-16 h-16 text-gray-400" />
+                <p className="text-gray-600">Preview not available</p>
+                <button
+                  onClick={() => onDownload(file._id)}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Download File
+                </button>
+              </div>
+            ) : (
+              <iframe
+                src={googleViewerUrl}
+                className="w-full h-full"
+                title={file.title}
+                onError={() => setIframeError(true)}
+              />
+            )}
           </div>
         );
 

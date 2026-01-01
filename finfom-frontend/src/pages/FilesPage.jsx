@@ -427,6 +427,7 @@ return (
           file={previewFile}
           onClose={() => setPreviewFile(null)}
           onDownload={handleDownload}
+          currentUserId={user?.id}
         />
       )}
 

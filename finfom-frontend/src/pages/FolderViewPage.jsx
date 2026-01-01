@@ -6,11 +6,13 @@ import { ArrowLeft, FolderOpen, FileText, Download, Trash2, MoreVertical } from 
 import toast from 'react-hot-toast';
 import Button from '../components/common/Button';
 import FilePreviewModal from '../components/files/FilePreviewModal';
-import { useEffect, useState, useRef } from 'react';  
+import { useEffect, useState, useRef, useContext } from 'react';  
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { AuthContext } from '../context/AuthContext';
 
 const FolderViewPage = () => {
   const { id } = useParams();
+  const { user } = useContext(AuthContext);
 
   const { data, isLoading } = useQuery({
     queryKey: ['folderFiles', id],
@@ -203,6 +205,7 @@ const FolderViewPage = () => {
           file={previewFile}
           onClose={() => setPreviewFile(null)}
           onDownload={handleDownload}
+          currentUserId={user?.id}
         />
       )}
     </Layout>
