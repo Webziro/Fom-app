@@ -326,9 +326,21 @@ export const getFile = async (req: AuthRequest, res: Response) => {
       .populate ('title')
       .select('+password');  // <- This loads the hidden password hash
 
-    if (!file) {
-      return res.status(404).json({ message: 'File not found' });
-    }
+
+    // Debug logging for file access
+    console.log('[getFile]', {
+      fileId: req.params.id,
+      visibility: file.visibility,
+      expiresAt: file.expiresAt,
+      now: new Date(),
+      isExpired: file.expiresAt ? (new Date() > file.expiresAt) : false,
+      ownerId: file.uploaderId?._id || file.uploaderId,
+      requesterId: req.user?._id,
+    });
+
+    if (!file) {
+      return res.status(404).json({ message: 'File not found' });
+    }
 
     // Expiry check
     if (file.expiresAt && new Date() > file.expiresAt) {
