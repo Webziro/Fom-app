@@ -1008,16 +1008,18 @@ export const previewFile = async (req: AuthRequest, res: Response) => {
         fileTitle = version.title || file.title;
       }
     }
-    // Add cache-busting param to force correct content
-    if (previewUrl && !previewUrl.includes('v=')) {
-      previewUrl += (previewUrl.includes('?') ? '&' : '?') + 'v=' + Date.now();
-    }
+    // Add a strong cache-busting param (random) to force Cloudinary to serve the latest content
+    previewUrl += (previewUrl.includes('?') ? '&' : '?') + 'cbust=' + Math.random().toString(36).substring(2) + Date.now();
     const response = await axios({
       method: 'GET',
       url: previewUrl,
       responseType: 'arraybuffer',
       timeout: 30000,
       validateStatus: (status) => status < 500,
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+      },
     });
 
     if (!response.data || response.data.length === 0) {
