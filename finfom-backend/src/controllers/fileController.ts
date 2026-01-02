@@ -109,11 +109,22 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
                 description: freshFile.description,
               } as any);
 
+
+              // Delete the old Cloudinary file to prevent stale content
+              if (freshFile.cloudinaryId && freshFile.cloudinaryId !== result.public_id) {
+                try {
+                  await cloudinary.uploader.destroy(freshFile.cloudinaryId);
+                } catch (e) {
+                  console.warn('Failed to delete old Cloudinary file:', e);
+                }
+              }
+
               // Update current (replace all content fields)
               freshFile.currentVersion = newVersionNumber;
               freshFile.cloudinaryId = result.public_id;
               freshFile.url = result.url;
-              freshFile.secureUrl = result.secure_url;
+              // Add cache-busting param to secureUrl to force new content
+              freshFile.secureUrl = result.secure_url + '?v=' + Date.now();
               freshFile.size = size;
               freshFile.fileType = mimetype;
               freshFile.title = finalTitle;
@@ -305,7 +316,10 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
     file.currentVersion = newVersionNumber;
     file.cloudinaryId = previousVersion.cloudinaryId;
     file.url = previousVersion.url;
-    file.secureUrl = previousVersion.secureUrl;
+    // Add cache-busting param to secureUrl to force correct reverted content
+    file.secureUrl = previousVersion.secureUrl
+      ? previousVersion.secureUrl + (previousVersion.secureUrl.includes('?') ? '&' : '?') + 'v=' + Date.now()
+      : '';
     file.size = previousVersion.size;
     file.fileType = previousVersion.fileType;
     file.fileHash = previousVersion.fileHash || file.fileHash;
@@ -621,7 +635,10 @@ export const restoreFileVersion = async (req: AuthRequest, res: Response) => {
     file.currentVersion = newVersionNumber;
     file.cloudinaryId = versionToRestore.cloudinaryId;
     file.url = versionToRestore.url;
-    file.secureUrl = versionToRestore.secureUrl;
+    // Add cache-busting param to secureUrl to force correct restored content
+    file.secureUrl = versionToRestore.secureUrl
+      ? versionToRestore.secureUrl + (versionToRestore.secureUrl.includes('?') ? '&' : '?') + 'v=' + Date.now()
+      : '';
     file.size = versionToRestore.size;
     file.fileType = versionToRestore.fileType;
     file.fileHash = versionToRestore.fileHash || file.fileHash;
@@ -974,8 +991,23 @@ export const previewFile = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    // All checks passed — serve the file
-    const previewUrl = file.secureUrl;
+    // Support previewing a specific version if versionNumber is provided in query
+    let previewUrl = file.secureUrl;
+    let fileType = file.fileType;
+    let fileTitle = file.title;
+    const { versionNumber } = req.query;
+    if (versionNumber) {
+      const version = file.versions.find(v => v.versionNumber === Number(versionNumber));
+      if (version) {
+        previewUrl = version.secureUrl;
+        fileType = version.fileType;
+        fileTitle = version.title || file.title;
+      }
+    }
+    // Add cache-busting param to force correct content
+    if (previewUrl && !previewUrl.includes('v=')) {
+      previewUrl += (previewUrl.includes('?') ? '&' : '?') + 'v=' + Date.now();
+    }
     const response = await axios({
       method: 'GET',
       url: previewUrl,
@@ -989,8 +1021,8 @@ export const previewFile = async (req: AuthRequest, res: Response) => {
     }
 
     // Set correct Content-Type for images and other files
-    res.setHeader('Content-Type', file.fileType || 'application/octet-stream');
-    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.title)}"`);
+    res.setHeader('Content-Type', fileType || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(fileTitle)}"`);
     res.setHeader('Content-Length', response.data.length);
     res.setHeader('Cache-Control', 'public, max-age=86400');
 
