@@ -34,25 +34,40 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 
     const finalTitle = (title?.trim() || originalname).trim();
 
-    // 1. Check for identical content (same hash) — reuse existing file
+    // 1. Check for identical content (same hash, size, type)
     const identicalDuplicate = await File.findOne({
       fileHash,
       size,
       fileType: mimetype,
     });
 
-    // If identical file found, return its info without re-uploading
     if (identicalDuplicate) {
-      return res.status(200).json({
-        success: true,
-        data: identicalDuplicate,
-        message: 'File content already exists in the system. Using existing file.',
-        isDuplicate: true,
-        link: identicalDuplicate.secureUrl,
-      });
+      // If the uploader is the owner, allow versioning logic below
+      if (identicalDuplicate.uploaderId.toString() === req.user._id.toString()) {
+        // fall through to versioning logic
+      } else {
+        // If a different user uploads a file with the same content and title
+        if (
+          identicalDuplicate.title.trim().toLowerCase() === finalTitle.trim().toLowerCase()
+        ) {
+          // If the file is public, block upload and inform user
+          if (identicalDuplicate.visibility === 'public') {
+            return res.status(409).json({
+              success: false,
+              message: 'A public file with this title and content already exists. Please use the existing file.',
+              data: identicalDuplicate,
+              isDuplicate: true,
+              link: identicalDuplicate.secureUrl,
+            });
+          }
+          // If private or passworded, allow upload (user can have their own copy)
+        } else {
+          // If title is different, allow upload (even if content is same)
+        }
+      }
     }
 
-    // 2. Check for versioning: same title, same user, same group
+    // 2. Check for versioning: same title, same user
     const existingFileForVersion = await File.findOne({
       title: { $regex: new RegExp(`^${finalTitle}$`, 'i') }, // case-insensitive exact match
       uploaderId: req.user._id,
@@ -65,7 +80,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 
       let responded = false;
       const uploadStream = cloudinary.uploader.upload_stream(
-        { folder: 'finfom-uploads', resource_type: mimetype.startsWith('image/') ? 'image' : 'raw' },
+        { folder: 'finfom-uploads', resource_type: mimetype.startsWith('image/') ? 'image' : 'raw', invalidate: true },
         async (error, result) => {
           if (responded) return;
           responded = true;
@@ -127,8 +142,30 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
               freshFile.currentVersion = newVersionNumber;
               freshFile.cloudinaryId = result.public_id;
               freshFile.url = result.url;
-              // Always append a new cache-busting param to secureUrl to guarantee new content is fetched
+              // Always use the latest Cloudinary upload result for secureUrl
               freshFile.secureUrl = result.secure_url + (result.secure_url.includes('?') ? '&' : '?') + 'v=' + Date.now();
+
+              // Debug: Log the Cloudinary upload result and file update
+              console.log('[uploadFile] Cloudinary upload result:', {
+                public_id: result.public_id,
+                url: result.url,
+                secure_url: result.secure_url,
+                size,
+                mimetype,
+                fileHash,
+                title: finalTitle,
+                description: description.trim(),
+              });
+              console.log('[uploadFile] Updated freshFile:', {
+                _id: freshFile._id,
+                currentVersion: freshFile.currentVersion,
+                cloudinaryId: freshFile.cloudinaryId,
+                url: freshFile.url,
+                secureUrl: freshFile.secureUrl,
+                fileHash: freshFile.fileHash,
+                title: freshFile.title,
+                description: freshFile.description,
+              });
               freshFile.size = size;
               freshFile.fileType = mimetype;
               freshFile.title = finalTitle;
@@ -202,7 +239,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 
       // 3. Normal new file upload
       const uploadStream = cloudinary.uploader.upload_stream(
-        { folder: 'finfom-uploads', resource_type: mimetype.startsWith('image/') ? 'image' : 'raw' },
+        { folder: 'finfom-uploads', resource_type: mimetype.startsWith('image/') ? 'image' : 'raw', invalidate: true },
         async (error, result) => {
           if (error || !result) {
             console.error('Cloudinary upload failed:', error);
@@ -996,17 +1033,27 @@ export const previewFile = async (req: AuthRequest, res: Response) => {
     }
 
     // Support previewing a specific version if versionNumber is provided in query
-    let previewUrl = file.secureUrl;
-    let fileType = file.fileType;
-    let fileTitle = file.title;
+    let previewUrl;
+    let fileType;
+    let fileTitle;
     const { versionNumber } = req.query;
     if (versionNumber) {
       const version = file.versions.find(v => v.versionNumber === Number(versionNumber));
       if (version) {
-        previewUrl = version.secureUrl;
+        previewUrl = version.url || version.secureUrl;
         fileType = version.fileType;
         fileTitle = version.title || file.title;
+      } else {
+        // fallback to current if version not found
+        previewUrl = file.url || file.secureUrl;
+        fileType = file.fileType;
+        fileTitle = file.title;
       }
+    } else {
+      // Always use the current file's download url for latest version
+      previewUrl = file.url || file.secureUrl;
+      fileType = file.fileType;
+      fileTitle = file.title;
     }
     // Add a strong cache-busting param (random) to force Cloudinary to serve the latest content
     previewUrl += (previewUrl.includes('?') ? '&' : '?') + 'cbust=' + Math.random().toString(36).substring(2) + Date.now();
