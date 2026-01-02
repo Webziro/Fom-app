@@ -8,7 +8,6 @@ import * as crypto from 'crypto';
 import axios from 'axios';
 import User from '../models/User';  
 import sendEmail from '../utils/sendEmail';
-import { createFolder } from '../controllers/fileController';
 import Folder from '../models/Folder';
 import redisClient from '../utils/redis';
 
@@ -27,7 +26,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
     const { title, description, visibility = 'private', password } = req.body;
 
     // Validate required fields
-     if (!description || description.trim() === '') return res.status(400).json({ success: false, message: 'File description is required' });
+    if (!description || description.trim() === '') return res.status(400).json({ success: false, message: 'File description is required' });
 
     const { buffer, originalname, mimetype, size } = req.file;
 
@@ -60,85 +59,119 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
     });
 
     if (existingFileForVersion) {
-  console.log(`New version detected for file "${finalTitle}" (ID: ${existingFileForVersion._id})`);
+      console.log(`New version detected for file "${finalTitle}" (ID: ${existingFileForVersion._id})`);
 
-  const newVersionNumber = (existingFileForVersion.currentVersion || 1) + 1;
+      const newVersionNumber = (existingFileForVersion.currentVersion || 1) + 1;
 
-  const uploadStream = cloudinary.uploader.upload_stream(
-    { folder: 'finfom-uploads', resource_type: mimetype.startsWith('image/') ? 'image' : 'raw' },
-    async (error, result) => {
-      if (error || !result) {
-        console.error('Cloudinary upload failed:', error);
-        if (!res.headersSent) {
-          return res.status(500).json({ success: false, message: 'Failed to upload new version' });
+      let responded = false;
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { folder: 'finfom-uploads', resource_type: mimetype.startsWith('image/') ? 'image' : 'raw' },
+        async (error, result) => {
+          if (responded) return;
+          responded = true;
+          if (error || !result) {
+            console.error('Cloudinary upload failed:', error);
+            if (!res.headersSent) {
+              res.status(500).json({ success: false, message: 'Failed to upload new version' });
+            }
+            return;
+          } else if (result) {
+            try {
+              const freshFile = await File.findById(existingFileForVersion._id);
+
+              if (!freshFile) {
+                if (!res.headersSent) {
+                  res.status(404).json({ message: 'File not found after upload' });
+                }
+                return;
+              }
+
+              // Safety: Initialize versions array
+              if (!Array.isArray(freshFile.versions)) {
+                freshFile.versions = [];
+              }
+              // No ObjectId validation needed for upload route
+
+
+              // Save old version (all content fields)
+              freshFile.versions.push({
+                versionNumber: freshFile.currentVersion || 1,
+                uploadedAt: new Date(),
+                uploadedBy: req.user._id,
+                cloudinaryId: freshFile.cloudinaryId,
+                url: freshFile.url,
+                secureUrl: freshFile.secureUrl,
+                size: freshFile.size,
+                fileType: freshFile.fileType,
+                // Add fileHash, title, description for full revert
+                fileHash: freshFile.fileHash,
+                title: freshFile.title,
+                description: freshFile.description,
+              } as any);
+
+              // Update current (replace all content fields)
+              freshFile.currentVersion = newVersionNumber;
+              freshFile.cloudinaryId = result.public_id;
+              freshFile.url = result.url;
+              freshFile.secureUrl = result.secure_url;
+              freshFile.size = size;
+              freshFile.fileType = mimetype;
+              freshFile.title = finalTitle;
+              freshFile.description = description.trim();
+              freshFile.fileHash = fileHash;
+              freshFile.updatedAt = new Date();
+
+              // Save the fresh document
+              await freshFile.save();
+
+              console.log('Versions array after save:', freshFile.versions);
+
+              if (!res.headersSent) {
+                res.status(200).json({
+                  success: true,
+                  data: freshFile,
+                  message: `New version uploaded (v${newVersionNumber})`,
+                  isNewVersion: true,
+                });
+              }
+              return;
+            } catch (dbError: any) {
+              console.error('Version save error:', dbError.message);
+              if (result) {
+                await cloudinary.uploader.destroy(result.public_id).catch(() => {});
+              }
+              if (!res.headersSent) {
+                res.status(500).json({ success: false, message: 'Failed to save new version', error: dbError.message });
+              }
+              return;
+            }
+          }
         }
-      }
+      );
 
-      try {
-        // Reload the document after upload (fresh state)
-        const freshFile = await File.findById(existingFileForVersion._id);
-
-        if (!freshFile) {
-          throw new Error('File not found after upload');
+      // Fallback: ensure response is sent even if Cloudinary never calls back
+      const timeout = setTimeout(() => {
+        if (!responded && !res.headersSent) {
+          responded = true;
+          res.status(500).json({ success: false, message: 'Upload timed out' });
         }
+      }, 30000); // 30 seconds
 
-        // Safety: Initialize versions array
-        if (!Array.isArray(freshFile.versions)) {
-          freshFile.versions = [];
+      const stream = new Readable();
+      stream.push(buffer);
+      stream.push(null);
+      stream.pipe(uploadStream);
+      // Clear timeout on finish
+      uploadStream.on('finish', () => clearTimeout(timeout));
+      uploadStream.on('error', () => {
+        if (!responded && !res.headersSent) {
+          responded = true;
+          clearTimeout(timeout);
+          res.status(500).json({ success: false, message: 'Upload stream error' });
         }
-
-        // Save old version
-        freshFile.versions.push({
-          versionNumber: freshFile.currentVersion || 1,
-          uploadedAt: new Date(),
-          uploadedBy: req.user._id,
-          cloudinaryId: freshFile.cloudinaryId,
-          url: freshFile.url,
-          secureUrl: freshFile.secureUrl,
-          size: freshFile.size,
-          fileType: freshFile.fileType,
-        });
-
-        // Update current
-        freshFile.currentVersion = newVersionNumber;
-        freshFile.cloudinaryId = result.public_id;
-        freshFile.url = result.url;
-        freshFile.secureUrl = result.secure_url;
-        freshFile.size = size;
-        freshFile.fileType = mimetype;
-        freshFile.title = finalTitle;
-        freshFile.description = description.trim();
-        freshFile.fileHash = fileHash;
-        freshFile.updatedAt = new Date();
-
-        // Save the fresh document
-        await freshFile.save();
-
-        console.log('Versions array after save:', freshFile.versions);
-
-        if (!res.headersSent) {
-          res.status(200).json({
-            success: true,
-            data: freshFile,
-            message: `New version uploaded (v${newVersionNumber})`,
-            isNewVersion: true,
-          });
-        }
-      } catch (dbError: any) {
-        console.error('Version save error:', dbError.message);
-        await cloudinary.uploader.destroy(result.public_id).catch(() => {});
-        if (!res.headersSent) {
-          res.status(500).json({ success: false, message: 'Failed to save new version', error: dbError.message });
-        }
-      }
+      });
+      return;
     }
-  );
-
-  const stream = new Readable();
-  stream.push(buffer);
-  stream.push(null);
-  stream.pipe(uploadStream);
-} else{
 
       // 3. Normal new file upload
       const uploadStream = cloudinary.uploader.upload_stream(
@@ -149,35 +182,35 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
             if (!res.headersSent) {
               return res.status(500).json({ success: false, message: 'Failed to upload to Cloudinary' });
             }
-          }
+          } else if (result) {
+            // Save new file document
+            try {
+              const newFile = await File.create({
+                title: finalTitle,
+                description: description.trim(),
+                visibility,
+                password: visibility === 'password' ? password : null,
+                size,
+                fileType: mimetype,
+                fileHash,
+                uploaderId: req.user._id,
+                cloudinaryId: result.public_id,
+                url: result.url,
+                secureUrl: result.secure_url,
+                currentVersion: 1,
+                versions: [],
+              });
 
-          // Save new file document
-          try {
-            const newFile = await File.create({
-              title: finalTitle,
-              description: description.trim(),
-              visibility,
-              password: visibility === 'password' ? password : null,
-              size,
-              fileType: mimetype,
-              fileHash,
-              uploaderId: req.user._id,
-              cloudinaryId: result.public_id,
-              url: result.url,
-              secureUrl: result.secure_url,
-              currentVersion: 1,
-              versions: [],
-            });
-
-            res.status(201).json({
-              success: true,
-              data: newFile,
-              message: 'File uploaded and saved successfully!',
-            });
-          } catch (dbError: any) {
-            await cloudinary.uploader.destroy(result.public_id).catch(() => {});
-            if (!res.headersSent) {
-              res.status(500).json({ success: false, message: 'Failed to save new file metadata to database', error: dbError.message });
+              res.status(201).json({
+                success: true,
+                data: newFile,
+                message: 'File uploaded and saved successfully!',
+              });
+            } catch (dbError: any) {
+              await cloudinary.uploader.destroy(result.public_id).catch(() => {});
+              if (!res.headersSent) {
+                res.status(500).json({ success: false, message: 'Failed to save new file metadata to database', error: dbError.message });
+              }
             }
           }
         }
@@ -188,14 +221,9 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
       stream.push(buffer);
       stream.push(null);
       stream.pipe(uploadStream);
-    }
-  } catch (error: any) {
-    console.error('Upload controller error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error during upload',
-      error: error.message,
-    });
+    } catch (error: any) {
+    console.error('Upload error:', error);
+    res.status(500).json({ success: false, message: 'Server error during file upload', error: error.message });
   }
 };
 
@@ -217,7 +245,7 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
 
     // Poll for versions array to be non-empty (wait for upload commit)
     let attempts = 0;
-    while (!Array.isArray(file.versions) || file.versions.length === 0) {
+    while (file && (!Array.isArray(file.versions) || file.versions.length === 0)) {
       if (attempts >= 10) {
         console.error('Timeout waiting for versions array');
         return res.status(500).json({ success: false, message: 'Timeout waiting for versions history' });
@@ -225,7 +253,11 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
       await new Promise(resolve => setTimeout(resolve, 500)); // wait 500ms
       file = await File.findById(req.params.id);
       attempts++;
-      }
+    }
+
+    if (!file) {
+      return res.status(404).json({ success: false, message: 'File not found after polling' });
+    }
 
     // Safety: Ensure versions is an array
     if (!Array.isArray(file.versions)) {
@@ -240,9 +272,9 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
       return res.status(404).json({ success: false, message: 'Previous version not found in history' });
     }
 
-    // Save current as new backup version
-    const newVersionNumber = file.currentVersion + 1;
 
+    // Save current as new backup version (all content fields)
+    const newVersionNumber = file.currentVersion + 1;
     file.versions.push({
       versionNumber: file.currentVersion,
       uploadedAt: new Date(),
@@ -252,16 +284,21 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
       secureUrl: file.secureUrl,
       size: file.size,
       fileType: file.fileType,
-    });
+      fileHash: (file as any).fileHash,
+      title: file.title,
+      description: file.description,
+    } as any);
 
-    // Restore previous to current
+    // Restore previous to current (all content fields)
     file.currentVersion = newVersionNumber;
     file.cloudinaryId = previousVersion.cloudinaryId;
     file.url = previousVersion.url;
     file.secureUrl = previousVersion.secureUrl;
     file.size = previousVersion.size;
     file.fileType = previousVersion.fileType;
-    file.fileHash = previousVersion.fileHash || file.fileHash;
+    (file as any).fileHash = (previousVersion as any).fileHash;
+    file.title = (previousVersion as any).title || file.title;
+    file.description = (previousVersion as any).description || file.description;
     file.updatedAt = new Date();
 
     // Mark modified
@@ -292,7 +329,7 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
 
 export const moveFileToFolder = async (req: AuthRequest, res: Response) => {
   try {
-    const { folderId } = req.body; // new folder ID (or null for root)
+    const folderId = (req.body as any).folderId;
     const file = await File.findById(req.params.id);
 
     if (!file) {
@@ -320,13 +357,20 @@ export const moveFileToFolder = async (req: AuthRequest, res: Response) => {
 
 // Get single file with access control
 export const getFile = async (req: AuthRequest, res: Response) => {
-  try {
-    const file = await File.findById(req.params.id)
-      .populate('uploaderId', 'username email')
-      .populate ('title')
-      .select('+password');  // <- This loads the hidden password hash
+  try {
+    // Validate ObjectId before querying
+    if (!req.params.id || !/^[a-fA-F0-9]{24}$/.test(req.params.id)) {
+      return res.status(404).json({ message: 'File not found' });
+    }
 
+    const file = await File.findById(req.params.id)
+      .populate('uploaderId', 'username email')
+      .populate('title')
+      .select('+password'); // <- This loads the hidden password hash
 
+    if (!file) {
+      return res.status(404).json({ message: 'File not found' });
+    }
     // Debug logging for file access
     console.log('[getFile]', {
       fileId: req.params.id,
@@ -338,191 +382,62 @@ export const getFile = async (req: AuthRequest, res: Response) => {
       requesterId: req.user?._id,
     });
 
-    if (!file) {
-      return res.status(404).json({ message: 'File not found' });
-    }
-
     // Expiry check
     if (file.expiresAt && new Date() > file.expiresAt) {
       return res.status(410).json({ message: 'File has expired' });
     }
 
-    // Public files: Allow everyone
-    if (file.visibility === 'public') {
-      return res.json({ success: true, data: file });
-    }
+    // Public files: Allow everyone
+    if (file.visibility === 'public') {
+      return res.json({ success: true, data: file });
+    }
 
-    // Password-protected files
-    if (file.visibility === 'password') {
-      // Owner bypass
-      if (req.user && file.uploaderId._id.toString() === req.user._id.toString()) {
-        return res.json({ success: true, data: file });
-      }
+    // Password-protected files
+    if (file.visibility === 'password') {
+      // Owner bypass
+      if (req.user && file.uploaderId._id.toString() === req.user._id.toString()) {
+        return res.json({ success: true, data: file });
+      }
 
-      const { password } = req.body;
-      if (!password) {
-        return res.status(401).json({ message: 'Password required' });
-      }
+      const { password } = req.body;
+      if (!password) {
+        return res.status(401).json({ message: 'Password required' });
+      }
 
-      const isMatch = await file.comparePassword(password);
-      if (!isMatch) {
-        return res.status(401).json({ message: 'Incorrect password' });
-      }
+      const isMatch = await file.comparePassword(password);
+      if (!isMatch) {
+        return res.status(401).json({ message: 'Incorrect password' });
+      }
 
-      return res.json({ success: true, data: file });
-    }
+      return res.json({ success: true, data: file });
+    }
 
-    // Private files: Only owner
-    if (file.visibility === 'private') {
-      if (!req.user || file.uploaderId._id.toString() !== req.user._id.toString()) {
-        return res.status(403).json({ message: 'Access denied' });
-      }
-    }
+    // Private files: Only owner
+    if (file.visibility === 'private') {
+      if (!req.user || file.uploaderId._id.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+    }
 
-    res.json({ success: true, data: file });
-  } catch (error: any) {
-    console.error('getFile error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
+    res.json({ success: true, data: file });
+  } catch (error: any) {
+    console.error('getFile error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
 };
 
 // Get single folder with access control
 export const getFolder = async (req: AuthRequest, res: Response) => {
-  try {
-    const folder = await Folder.findById(req.params.id)
-      .select('title description createdAt uploaderId');
-
-    if (!folder) {
-      return res.status(404).json({ message: 'Folder not found' });
-    }
-
-    // Only owner can view folder details
-    if (folder.uploaderId.toString() !== req.user?._id.toString()) {
-      return res.status(403).json({ message: 'Not authorized' });
-    }
-
-    res.json({ success: true, data: folder });
-  } catch (error: any) {
-    console.error('getFolder error:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
-//Download file controller with fixed Cloudinary URL signing
-
-export const downloadFile = async (req: AuthRequest, res: Response) => {
-  try {
-    const file = await File.findById(req.params.id);
-    if (!file) return res.status(404).json({ message: 'File not found' });
-
-    // Permission checks (your existing code)
-    if (file.visibility === 'private') {
-      if (!req.user || file.uploaderId.toString() !== req.user._id.toString()) {
-        return res.status(403).json({ message: 'Access denied' });
-      }
-    }
-
-    // Increment downloads
-    file.downloads += 1;
-    await file.save();
-  // === SEND DOWNLOAD NOTIFICATION ===
-if (!req.user || file.uploaderId.toString() !== req.user._id.toString()) {
-  try {
-    const uploader = await User.findById(file.uploaderId).select('email username');
-    if (uploader?.email) {
-      const subject = `Your file "${file.title}" was downloaded`;
-      const message = `
-          Someone just downloaded your file on Finfom!
-
-          File: ${file.title}
-          Time: ${new Date().toLocaleString()}
-          Downloaded by: ${req.user ? req.user.username : 'Guest (via public link)'}
-
-          View your files: ${process.env.CLIENT_URL || 'http://localhost:5173'}/files
-
-          This is an automated notification from Finfom.
-      `.trim();
-
-      await sendEmail({
-        email: uploader.email,
-        subject,
-        message,
-      });
-    }
-  } catch (emailErr) {
-    console.error('Failed to send download notification:', emailErr);
-    // Don't break the download if email fails
-  }
-}
-
-    // Build Cloudinary download URL
-    // The secureUrl is already stored from the upload response (e.g., result.secure_url)
-    // For downloads, add fl_attachment flag to force download instead of preview
-    let downloadUrl = file.secureUrl;
-    
-    // Modify URL to add attachment flag if not already present
-    if (!downloadUrl.includes('/fl_attachment/')) {
-      downloadUrl = downloadUrl.replace('/upload/', '/upload/fl_attachment/');
+  try {
+    const folder = await Folder.findById(req.params.id)
+      .select('title description createdAt uploaderId');
+    if (!folder) {
+      return res.status(404).json({ message: 'Folder not found' });
     }
-    
-    console.log('[Download] File details:', {
-      fileId: req.params.id,
-      title: file.title,
-      cloudinaryId: file.cloudinaryId,
-      originalUrl: file.secureUrl,
-      downloadUrl,
-    });
-
-    // Buffer the entire file before sending (not streaming)
-    const response = await axios({
-      method: 'GET',
-      url: downloadUrl,
-      responseType: 'arraybuffer', // Buffer entire response instead of streaming
-      timeout: 30000,
-      validateStatus: (status) => status < 500,
-    });
-
-    console.log('[Download] Cloudinary response:', {
-      status: response.status,
-      contentType: response.headers['content-type'],
-      contentLength: response.headers['content-length'],
-      dataLength: response.data.length,
-      dataType: typeof response.data,
-    });
-
-    // If Cloudinary returned an error or empty response, log the actual response
-    if (!response.data || response.data.length === 0) {
-      console.error('[Download] Empty file from Cloudinary:', {
-        fileId: req.params.id,
-        cloudinaryId: file.cloudinaryId,
-        url: downloadUrl,
-        responseStatus: response.status,
-        responseText: response.data?.toString?.('utf-8'),
-      });
-      return res.status(404).json({ message: 'File content is empty from storage' });
-    }
-
-    // Set headers
-    res.setHeader('Content-Type', file.fileType || 'application/octet-stream');
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.title)}"`);
-    res.setHeader('Content-Length', response.data.length);
-
-    // Send buffered data
-    res.send(response.data);  } catch (error: any) {
-    console.error('Download failed:', {
-      message: error.message,
-      status: error.response?.status,
-      url: error.config?.url,
-    });
-
-    if (!res.headersSent) {
-      if (error.response?.status === 404) {
-        res.status(404).json({ message: 'File not available (Cloudinary 404)' });
-      } else {
-        res.status(500).json({ message: 'Download failed', details: error.message });
-      }
-    }
-  }
+    res.json({ success: true, data: folder });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
 };
 
 // Update file metadata function
@@ -991,34 +906,34 @@ export const previewFile = async (req: AuthRequest, res: Response) => {
     const file = await File.findById(req.params.id).populate('uploaderId', 'username email');
     if (!file) return res.status(404).json({ message: 'File not found' });
 
+    // Expiry check (reuse logic)
+    if (file.expiresAt && new Date() > file.expiresAt) {
+      return res.status(410).json({ message: 'File has expired' });
+    }
+
     const isOwner = req.user && file.uploaderId._id.toString() === req.user._id.toString();
 
-    // Owner always has full access no checks needed
-    if (!isOwner) {
-      // Non-owner checks private and password files
-      if (file.visibility === 'private') {
+    // Public files: anyone can preview
+    if (file.visibility === 'public') {
+      // continue to preview
+    } else if (file.visibility === 'private') {
+      if (!isOwner) {
         return res.status(403).json({ message: 'Access denied' });
       }
-
-      if (file.visibility === 'password') {
+    } else if (file.visibility === 'password') {
+      if (!isOwner) {
         const passwordAttempts = req.session?.passwordAttempts || {};
         if (!passwordAttempts[file._id]) {
           return res.status(403).json({ message: 'Password required' });
         }
       }
-
-      // Public files — allow anyone
-      if (file.visibility !== 'public') {
-        // If not public, private, or password — block (safety)
-        return res.status(403).json({ message: 'Access denied' });
-      }
+    } else {
+      // Unknown visibility type
+      return res.status(403).json({ message: 'Access denied' });
     }
 
     // All checks passed — serve the file
     const previewUrl = file.secureUrl;
-
-    // console.log('[Preview] Fetching:', { fileId: req.params.id, title: file.title, userId: req.user?._id, visibility: file.visibility, isOwner });
-
     const response = await axios({
       method: 'GET',
       url: previewUrl,
@@ -1027,12 +942,11 @@ export const previewFile = async (req: AuthRequest, res: Response) => {
       validateStatus: (status) => status < 500,
     });
 
-    // Log response details
     if (!response.data || response.data.length === 0) {
       return res.status(404).json({ message: 'File content is empty' });
     }
 
-    // Inline display headers
+    // Set correct Content-Type for images and other files
     res.setHeader('Content-Type', file.fileType || 'application/octet-stream');
     res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.title)}"`);
     res.setHeader('Content-Length', response.data.length);
@@ -1043,6 +957,80 @@ export const previewFile = async (req: AuthRequest, res: Response) => {
     console.error('Preview failed:', error.message);
     if (!res.headersSent) {
       res.status(500).json({ message: 'Preview failed' });
+    }
+  }
+};
+
+
+// Download file controller - serves file as attachment for download
+export const downloadFile = async (req: AuthRequest, res: Response) => {
+  try {
+    const file = await File.findById(req.params.id).populate('uploaderId', 'username email');
+    if (!file) return res.status(404).json({ message: 'File not found' });
+
+    // Expiry check
+    if (file.expiresAt && new Date() > file.expiresAt) {
+      return res.status(410).json({ message: 'File has expired' });
+    }
+
+    const isOwner = req.user && file.uploaderId._id.toString() === req.user._id.toString();
+
+    // Public files: anyone can download
+    if (file.visibility === 'public') {
+      // continue
+    } else if (file.visibility === 'private') {
+      if (!isOwner) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+    } else if (file.visibility === 'password') {
+      if (!isOwner) {
+        // Password must be provided in body
+        const { password } = req.body;
+        if (!password) {
+          return res.status(401).json({ message: 'Password required' });
+        }
+        const isMatch = await file.comparePassword(password);
+        if (!isMatch) {
+          return res.status(401).json({ message: 'Incorrect password' });
+        }
+      }
+    } else {
+      // Unknown visibility type
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // All checks passed — serve the file as attachment
+    const downloadUrl = file.secureUrl;
+    const response = await axios({
+      method: 'GET',
+      url: downloadUrl,
+      responseType: 'arraybuffer',
+      timeout: 30000,
+      validateStatus: (status) => status < 500,
+    });
+
+    if (!response.data || response.data.length === 0) {
+      return res.status(404).json({ message: 'File content is empty' });
+    }
+
+    // Set correct Content-Type and Content-Disposition for download
+    res.setHeader('Content-Type', file.fileType || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.title)}"`);
+    res.setHeader('Content-Length', response.data.length);
+    res.setHeader('Cache-Control', 'no-store');
+
+    // Optionally increment download count
+    try {
+      await File.findByIdAndUpdate(file._id, { $inc: { downloads: 1 } });
+    } catch (e) {
+      // Ignore download count errors
+    }
+
+    res.send(response.data);
+  } catch (error: any) {
+    console.error('Download failed:', error.message);
+    if (!res.headersSent) {
+      res.status(500).json({ message: 'Download failed' });
     }
   }
 };

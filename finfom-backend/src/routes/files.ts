@@ -45,26 +45,24 @@ router.post('/:id/access', getFile); // Public access for password-protected fil
 router.post('/:id/download', downloadLimiter, attachUser, downloadFile);
 router.get('/:id/preview', attachUser, previewFile); // Preview endpoint (inline display, no auth required but attachUser adds context)
 
-// Public GET by ID (must come after all more specific /:id/* routes)
-router.get('/:id', getFile);
 
-// Protected routes
+
+// Protected routes (order matters: more specific first)
+router.get('/folders', protect, getMyFolders);
+router.post('/folders', protect, createFolder);
+router.put('/folders/:id', protect, updateFolder);
+router.delete('/folders/:id', protect, deleteFolder);
+router.get('/folders/:id', protect, getFolder);
+
+router.get('/accessible', protect, getAllAccessibleFiles);
+router.get('/', protect, getMyFiles);
+
 router.post('/:id/verify-password', protect, verifyFilePassword);
 router.post('/:id/restore-version', protect, restoreFileVersion);
 router.post('/:id/revert-previous', protect, revertToPreviousVersion);
 
-router.get('/', protect, getMyFiles);
-router.get('/accessible', protect, getAllAccessibleFiles);
-
 router.put('/:id', protect, updateFile);
 router.delete('/:id', protect, deleteFile);
-
-// Folder routes
-router.post('/folders', protect, createFolder);
-router.get('/folders', protect, getMyFolders);
-router.put('/folders/:id', protect, updateFolder);
-router.delete('/folders/:id', protect, deleteFolder);
-router.get('/folders/:id', protect, getFolder);
 
 // Analytics route
 router.get('/analytics', protect, (req, res, next) => {
@@ -73,5 +71,8 @@ router.get('/analytics', protect, (req, res, next) => {
   res.set('Expires', '0');
   next();
 }, getAnalytics);
+
+// Public GET by ID (must come after all more specific /:id/* routes and after folders/analytics)
+router.get('/:id', getFile);
 
 export default router;
