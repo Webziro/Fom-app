@@ -93,6 +93,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
               // No ObjectId validation needed for upload route
 
 
+
               // Save old version (all content fields)
               freshFile.versions.push({
                 versionNumber: freshFile.currentVersion || 1,
@@ -103,7 +104,6 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
                 secureUrl: freshFile.secureUrl,
                 size: freshFile.size,
                 fileType: freshFile.fileType,
-                // Add fileHash, title, description for full revert
                 fileHash: freshFile.fileHash,
                 title: freshFile.title,
                 description: freshFile.description,
@@ -120,6 +120,18 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
               freshFile.description = description.trim();
               freshFile.fileHash = fileHash;
               freshFile.updatedAt = new Date();
+
+              // Extra debug log
+              console.log('[uploadFile] Updated file to new version:', {
+                _id: freshFile._id,
+                currentVersion: freshFile.currentVersion,
+                cloudinaryId: freshFile.cloudinaryId,
+                url: freshFile.url,
+                secureUrl: freshFile.secureUrl,
+                fileHash: freshFile.fileHash,
+                title: freshFile.title,
+                description: freshFile.description,
+              });
 
               // Save the fresh document
               await freshFile.save();
@@ -296,10 +308,22 @@ export const revertToPreviousVersion = async (req: AuthRequest, res: Response) =
     file.secureUrl = previousVersion.secureUrl;
     file.size = previousVersion.size;
     file.fileType = previousVersion.fileType;
-    (file as any).fileHash = (previousVersion as any).fileHash;
-    file.title = (previousVersion as any).title || file.title;
-    file.description = (previousVersion as any).description || file.description;
+    file.fileHash = previousVersion.fileHash || file.fileHash;
+    file.title = previousVersion.title || file.title;
+    file.description = previousVersion.description || file.description;
     file.updatedAt = new Date();
+
+    // Extra debug log
+    console.log('[revertToPreviousVersion] Reverted file to previous version:', {
+      _id: file._id,
+      currentVersion: file.currentVersion,
+      cloudinaryId: file.cloudinaryId,
+      url: file.url,
+      secureUrl: file.secureUrl,
+      fileHash: file.fileHash,
+      title: file.title,
+      description: file.description,
+    });
 
     // Mark modified
     file.markModified('versions');
@@ -588,16 +612,34 @@ export const restoreFileVersion = async (req: AuthRequest, res: Response) => {
       secureUrl: file.secureUrl,
       size: file.size,
       fileType: file.fileType,
-    });
+      fileHash: file.fileHash,
+      title: file.title,
+      description: file.description,
+    } as any);
 
-    // Restore old version to current
+    // Restore old version to current (all fields)
     file.currentVersion = newVersionNumber;
     file.cloudinaryId = versionToRestore.cloudinaryId;
     file.url = versionToRestore.url;
     file.secureUrl = versionToRestore.secureUrl;
     file.size = versionToRestore.size;
     file.fileType = versionToRestore.fileType;
+    file.fileHash = versionToRestore.fileHash || file.fileHash;
+    file.title = versionToRestore.title || file.title;
+    file.description = versionToRestore.description || file.description;
     file.updatedAt = new Date();
+
+    // Extra debug log
+    console.log('[restoreFileVersion] Restored file to version:', {
+      _id: file._id,
+      currentVersion: file.currentVersion,
+      cloudinaryId: file.cloudinaryId,
+      url: file.url,
+      secureUrl: file.secureUrl,
+      fileHash: file.fileHash,
+      title: file.title,
+      description: file.description,
+    });
 
     await file.save();
 
