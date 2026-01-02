@@ -1040,22 +1040,22 @@ export const previewFile = async (req: AuthRequest, res: Response) => {
     if (versionNumber) {
       const version = file.versions.find(v => v.versionNumber === Number(versionNumber));
       if (version) {
-        previewUrl = version.url || version.secureUrl;
+        previewUrl = version.secureUrl;
         fileType = version.fileType;
         fileTitle = version.title || file.title;
       } else {
         // fallback to current if version not found
-        previewUrl = file.url || file.secureUrl;
+        previewUrl = file.secureUrl;
         fileType = file.fileType;
         fileTitle = file.title;
       }
     } else {
-      // Always use the current file's download url for latest version
-      previewUrl = file.url || file.secureUrl;
+      // Always use the current file's secureUrl for latest version
+      previewUrl = file.secureUrl;
       fileType = file.fileType;
       fileTitle = file.title;
     }
-    // Add a strong cache-busting param (random) to force Cloudinary to serve the latest content
+    // Add a strong cache-busting param (random) to force Cloudinary and browser to serve the latest content
     previewUrl += (previewUrl.includes('?') ? '&' : '?') + 'cbust=' + Math.random().toString(36).substring(2) + Date.now();
     const response = await axios({
       method: 'GET',
@@ -1064,8 +1064,9 @@ export const previewFile = async (req: AuthRequest, res: Response) => {
       timeout: 30000,
       validateStatus: (status) => status < 500,
       headers: {
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
         'Pragma': 'no-cache',
+        'Expires': '0',
       },
     });
 
@@ -1077,7 +1078,9 @@ export const previewFile = async (req: AuthRequest, res: Response) => {
     res.setHeader('Content-Type', fileType || 'application/octet-stream');
     res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(fileTitle)}"`);
     res.setHeader('Content-Length', response.data.length);
-    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
 
     res.send(response.data);
   } catch (error: any) {
