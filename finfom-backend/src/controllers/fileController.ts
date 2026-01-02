@@ -95,13 +95,17 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
 
 
               // Save old version (all content fields)
+              // Always store a cache-busted secureUrl for the version being saved
+              const versionSecureUrl = freshFile.secureUrl
+                ? freshFile.secureUrl + (freshFile.secureUrl.includes('?') ? '&' : '?') + 'v=' + Date.now()
+                : '';
               freshFile.versions.push({
                 versionNumber: freshFile.currentVersion || 1,
                 uploadedAt: new Date(),
                 uploadedBy: req.user._id,
                 cloudinaryId: freshFile.cloudinaryId,
                 url: freshFile.url,
-                secureUrl: freshFile.secureUrl,
+                secureUrl: versionSecureUrl,
                 size: freshFile.size,
                 fileType: freshFile.fileType,
                 fileHash: freshFile.fileHash,
@@ -123,8 +127,8 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
               freshFile.currentVersion = newVersionNumber;
               freshFile.cloudinaryId = result.public_id;
               freshFile.url = result.url;
-              // Add cache-busting param to secureUrl to force new content
-              freshFile.secureUrl = result.secure_url + '?v=' + Date.now();
+              // Always append a new cache-busting param to secureUrl to guarantee new content is fetched
+              freshFile.secureUrl = result.secure_url + (result.secure_url.includes('?') ? '&' : '?') + 'v=' + Date.now();
               freshFile.size = size;
               freshFile.fileType = mimetype;
               freshFile.title = finalTitle;
